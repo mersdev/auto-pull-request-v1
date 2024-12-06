@@ -43,8 +43,7 @@ Example response:
     "summary": ["Implements JWT-based authentication", "Adds user login/signup endpoints"],
     "implementation": ["Uses bcrypt for password hashing", "JWT tokens expire in 24h"],
     "impact": ["Requires environment variables for JWT_SECRET", "Updates to user model schema"],
-    "testing": ["Add tests for auth middleware", "Verify token expiration handling"],
-    "recommendations": ["Consider adding refresh tokens", "Add rate limiting for auth endpoints"]
+    "testing": ["Add tests for auth middleware", "Verify token expiration handling"]
   }
 }
 
@@ -158,8 +157,7 @@ async function getCodeReview(changes) {
       !parsedResponse.sections.summary ||
       !parsedResponse.sections.implementation ||
       !parsedResponse.sections.impact ||
-      !parsedResponse.sections.testing ||
-      !parsedResponse.sections.recommendations
+      !parsedResponse.sections.testing
     ) {
       throw new Error("Missing required fields in response");
     }
@@ -178,14 +176,105 @@ async function getCodeReview(changes) {
   }
 }
 
+// Function to update overview tab with explanation
+function updateOverviewTab(tabId, explanation) {
+  const updateScript = {
+    target: { tabId: tabId },
+    func: (title, sections) => {
+      function formatSections(sections) {
+        return Object.entries(sections)
+          .map(([section, points]) => {
+            const sectionTitle =
+              section.charAt(0).toUpperCase() + section.slice(1);
+            const formattedPoints = points
+              .map((point) => `• ${point}`)
+              .join("\n");
+            return `${sectionTitle}:\n${formattedPoints}`;
+          })
+          .join("\n\n");
+      }
+
+      function updateInputValue(input, value) {
+        if (input) {
+          input.value = value;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+
+      function waitForElement(selector, maxAttempts = 10) {
+        return new Promise((resolve, reject) => {
+          let attempts = 0;
+
+          const checkElement = () => {
+            attempts++;
+            const element = document.querySelector(selector);
+
+            if (element) {
+              resolve(element);
+            } else if (attempts >= maxAttempts) {
+              reject(
+                new Error(
+                  `Element ${selector} not found after ${maxAttempts} attempts`
+                )
+              );
+            } else {
+              setTimeout(checkElement, 500);
+            }
+          };
+
+          checkElement();
+        });
+      }
+
+      async function updateFields() {
+        try {
+          // Click overview tab
+          const overviewTab = await waitForElement("#__bolt-tab-overview");
+          overviewTab.click();
+
+          // Wait for inputs and update them
+          const [titleInput, descInput] = await Promise.all([
+            waitForElement("#__bolt-textfield-input-4"),
+            waitForElement("#__bolt-textfield-input-5"),
+          ]);
+
+          // Format description
+          const formattedDescription = formatSections(sections);
+
+          // Update fields
+          updateInputValue(titleInput, title);
+          updateInputValue(descInput, formattedDescription);
+
+          console.log("Overview tab updated successfully");
+        } catch (error) {
+          console.error("Error updating overview tab:", error);
+        }
+      }
+
+      // Start the update process
+      updateFields();
+    },
+    args: [explanation.title, explanation.sections],
+  };
+
+  return chrome.scripting.executeScript(updateScript);
+}
+
 // Message listener for handling code review requests
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "EXPLAIN_CHANGES") {
     getCodeReview(message.changes)
       .then((explanation) => {
+        // Send explanation to popup
         chrome.tabs.sendMessage(sender.tab.id, {
           type: "EXPLANATION_RESULT",
           explanation: JSON.stringify(explanation),
+        });
+
+        // Update overview tab
+        updateOverviewTab(sender.tab.id, explanation).catch((error) => {
+          console.error("Error executing overview update script:", error);
         });
       })
       .catch((error) => {
