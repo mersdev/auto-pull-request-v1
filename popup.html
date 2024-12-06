@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Azure DevOps Diff Extractor</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' http://localhost:11434; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link href="styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 class="title">Azure DevOps Diff Extractor</h1>
+        <button id="extractButton">Extract Changes</button>
+      </div>
+      <div id="fileName">
+        <div class="empty-state">Click 'Extract Changes' to start</div>
+      </div>
+      <div id="explanation" class="explanation-card hidden">
+        <div class="explanation-header">
+          <h2 class="explanation-title">Changes Explanation</h2>
+        </div>
+        <div class="explanation-content"></div>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
