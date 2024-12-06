@@ -19,7 +19,7 @@
 
 body {
   width: 800px;
-  min-height: 1000px;
+  min-height: 600px;
   font-family: "Inter", -apple-system, system-ui, sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
@@ -29,7 +29,7 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  height: 1000px;
+  height: 600px;
   padding: 1.5rem;
   gap: 1.5rem;
   overflow-y: auto;
