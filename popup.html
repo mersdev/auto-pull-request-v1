@@ -13,46 +13,15 @@
     <link href="styles.css" rel="stylesheet" />
   </head>
   <body>
-    <div class="container">
+    <div class="container popup">
       <div class="header">
         <h1 class="title">Azure DevOps Diff Extractor</h1>
-        <button id="extractButton">Extract Changes</button>
       </div>
-
-      <!-- Code Changes Section -->
-      <div id="fileName" class="section-card">
-        <div class="section-header">
-          <h2 class="section-title">Code Changes</h2>
-        </div>
-        <div class="section-content">
-          <div class="empty-state">Click 'Extract Changes' to start</div>
-        </div>
-      </div>
-
-      <!-- Explanation Section -->
-      <div id="explanation" class="section-card hidden">
-        <div class="section-header">
-          <h2 class="section-title">Changes Explanation</h2>
-        </div>
-        <div class="explanation-content"></div>
-      </div>
-
-      <!-- Review Message Section -->
-      <div id="reviewMessage" class="section-card hidden">
-        <div class="section-header">
-          <h2 class="section-title">Review Request Message</h2>
-          <div class="button-group">
-            <button id="copyMessageButton" class="copy-button">
-              <span class="button-text">Copy Message</span>
-            </button>
-            <button id="regenerateMessageButton" class="regenerate-button">
-              <span class="button-text">Regenerate</span>
-            </button>
-          </div>
-        </div>
-        <div class="section-content">
-          <pre id="messageText" class="message-text"></pre>
-        </div>
+      <div class="content">
+        <button id="extractButton" class="primary-button">
+          Extract Changes
+        </button>
+        <div id="status" class="status-message hidden"></div>
       </div>
     </div>
     <script src="popup.js"></script>

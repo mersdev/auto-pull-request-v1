@@ -24,8 +24,7 @@ const GEMINI_CONFIG = {
     "summary": ["Key points about the overall changes"],
     "implementation": ["Technical implementation details"],
     "impact": ["Breaking changes", "Dependencies affected"],
-    "testing": ["Testing requirements", "Areas to focus testing"],
-    "recommendations": ["Suggestions for improvement", "Best practices to consider"]
+    "testing": ["Testing requirements", "Areas to focus testing"]
   }
 }
 

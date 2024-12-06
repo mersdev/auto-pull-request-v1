@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Code Changes Results</title>
+    <link href="styles.css" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container results-page">
+      <!-- Code Changes Section -->
+      <div id="codeChanges" class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Code Changes</h2>
+        </div>
+        <div class="section-content">
+          <div id="fileChangesContent"></div>
+        </div>
+      </div>
+
+      <!-- Explanation Section -->
+      <div id="explanation" class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Changes Explanation</h2>
+        </div>
+        <div class="explanation-content"></div>
+      </div>
+
+      <!-- Review Message Section -->
+      <div id="reviewMessage" class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Review Request Message</h2>
+          <div class="button-group">
+            <button id="copyMessageButton" class="copy-button">
+              <span class="button-text">Copy Message</span>
+            </button>
+            <button id="regenerateMessageButton" class="regenerate-button">
+              <span class="button-text">Regenerate</span>
+            </button>
+          </div>
+        </div>
+        <div class="section-content">
+          <pre id="messageText" class="message-text"></pre>
+        </div>
+      </div>
+    </div>
+    <script src="results.js"></script>
+  </body>
+</html>
