@@ -196,6 +196,8 @@ function handleIncomingMessages(message) {
   const explanationContent = explanationCard.querySelector(
     ".explanation-content"
   );
+  const reviewMessageCard = document.getElementById("reviewMessage");
+  const messageText = document.getElementById("messageText");
 
   if (
     message.type === "FILE_CHANGES" &&
@@ -206,33 +208,168 @@ function handleIncomingMessages(message) {
     fileNameSpan.innerHTML = formattedOutput;
     fileNameSpan.classList.remove("hidden");
   } else if (message.type === "ERROR") {
-    fileNameSpan.textContent = message.fileName;
+    showNotification("Error", message.message, "error");
+    resetExtractButton(extractButton);
+    return;
   }
 
   if (message.type === "EXPLANATION_TO_POPUP" && message.explanation) {
     try {
+      // First try to parse the explanation
+      let parsedExplanation;
+      try {
+        parsedExplanation = JSON.parse(message.explanation);
+      } catch (parseError) {
+        console.error("JSON parsing error:", parseError);
+        throw new Error("Invalid explanation format");
+      }
+
+      // Validate the explanation structure
+      if (!isValidExplanation(parsedExplanation)) {
+        throw new Error("Missing required fields in explanation");
+      }
+
+      // Process the explanation
       processExplanation(
         explanationCard,
         explanationContent,
-        message.explanation
+        parsedExplanation
       );
       explanationCard.classList.remove("hidden");
-      fileNameSpan.classList.remove("hidden");
+
+      // Show review message if explanation is valid
+      displayReviewMessage(parsedExplanation);
     } catch (error) {
       console.error("Error processing explanation:", error);
       handleInvalidExplanation(explanationCard, explanationContent);
+      showNotification(
+        "Error",
+        "Failed to process explanation: " + error.message,
+        "error"
+      );
     }
   }
 
-  if (message.type === "REVIEW_MESSAGE_COPIED") {
-    showNotification("Review message copied to clipboard!", message.message);
-  }
-
-  if (message.type === "ERROR") {
-    showNotification("Error", message.message, "error");
-  }
-
   resetExtractButton(extractButton);
+}
+
+function isValidExplanation(explanation) {
+  return (
+    explanation &&
+    typeof explanation === "object" &&
+    typeof explanation.title === "string" &&
+    explanation.sections &&
+    typeof explanation.sections === "object" &&
+    Array.isArray(explanation.sections.summary) &&
+    explanation.sections.summary.length > 0
+  );
+}
+
+function processExplanation(
+  explanationCard,
+  explanationContent,
+  parsedExplanation
+) {
+  explanationContent.innerHTML = `
+    <div class="explanation-title">${escapeHtml(parsedExplanation.title)}</div>
+    
+    ${Object.entries(parsedExplanation.sections)
+      .map(
+        ([section, points]) => `
+        <div class="explanation-section">
+          <h3 class="section-title">${escapeHtml(
+            section.charAt(0).toUpperCase() + section.slice(1)
+          )}</h3>
+          <ul class="section-points">
+            ${points.map((point) => `<li>${escapeHtml(point)}</li>`).join("")}
+          </ul>
+        </div>
+      `
+      )
+      .join("")}
+  `;
+}
+
+function handleInvalidExplanation(explanationCard, explanationContent) {
+  explanationCard.classList.remove("hidden");
+  explanationContent.innerHTML = `
+    <div class="error-message">
+      <strong>Error processing the explanation</strong>
+      <ul>
+        <li>The response format was invalid</li>
+        <li>Please check the console for detailed error messages</li>
+        <li>Try extracting changes again</li>
+      </ul>
+    </div>
+  `;
+}
+
+function displayReviewMessage(explanation) {
+  const reviewMessageCard = document.getElementById("reviewMessage");
+  const messageText = document.getElementById("messageText");
+  const copyButton = document.getElementById("copyMessageButton");
+  const regenerateButton = document.getElementById("regenerateMessageButton");
+
+  try {
+    // Format the message
+    const message = formatReviewMessage(explanation);
+    messageText.textContent = message;
+    reviewMessageCard.classList.remove("hidden");
+
+    // Setup copy button
+    copyButton.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(messageText.textContent);
+        updateButtonState(copyButton, "Copied!");
+        showNotification("Success", "Message copied to clipboard!", "success");
+      } catch (err) {
+        console.error("Failed to copy message:", err);
+        showNotification("Error", "Failed to copy message", "error");
+      }
+    };
+
+    // Setup regenerate button
+    regenerateButton.onclick = () => {
+      const newMessage = formatReviewMessage(explanation);
+      messageText.textContent = newMessage;
+      showNotification("Success", "Message regenerated!", "success");
+    };
+  } catch (error) {
+    console.error("Error displaying review message:", error);
+    showNotification("Error", "Failed to display review message", "error");
+  }
+}
+
+function formatReviewMessage(explanation) {
+  try {
+    const summaryPoints = explanation.sections.summary
+      .map((point) => `- ${point}`)
+      .join("\n");
+
+    return `Hi team! 
+
+I've created a new PR that needs your review.
+
+Summary of changes ${explanation.title}:
+${summaryPoints}
+
+Would appreciate your review when you have a moment. Thanks!`;
+  } catch (error) {
+    console.error("Error formatting review message:", error);
+    throw new Error("Failed to format review message");
+  }
+}
+
+function updateButtonState(button, text) {
+  const buttonText = button.querySelector(".button-text");
+  const originalText = buttonText.textContent;
+  buttonText.textContent = text;
+  button.classList.add("activated");
+
+  setTimeout(() => {
+    buttonText.textContent = originalText;
+    button.classList.remove("activated");
+  }, 2000);
 }
 
 // Step 6: Helpers for File Changes and Explanations
@@ -278,63 +415,6 @@ function formatCodeLine(change) {
   return `<div class="${className}">${symbol} ${escapeHtml(
     change.content
   )}</div>`;
-}
-
-function processExplanation(explanationCard, explanationContent, explanation) {
-  try {
-    const parsedExplanation = JSON.parse(explanation);
-    handleValidExplanation(
-      explanationCard,
-      explanationContent,
-      parsedExplanation
-    );
-  } catch (error) {
-    console.error("Error parsing explanation:", error);
-    handleInvalidExplanation(explanationCard, explanationContent);
-  }
-}
-
-function handleValidExplanation(
-  explanationCard,
-  explanationContent,
-  parsedExplanation
-) {
-  if (!parsedExplanation.title || !parsedExplanation.sections) {
-    throw new Error("Invalid explanation format");
-  }
-
-  explanationContent.innerHTML = `
-    <div class="explanation-title">${parsedExplanation.title}</div>
-    
-    ${Object.entries(parsedExplanation.sections)
-      .map(
-        ([section, points]) => `
-        <div class="explanation-section">
-          <h3 class="section-title">${
-            section.charAt(0).toUpperCase() + section.slice(1)
-          }</h3>
-          <ul class="section-points">
-            ${points.map((point) => `<li>${point}</li>`).join("")}
-          </ul>
-        </div>
-      `
-      )
-      .join("")}
-  `;
-}
-
-function handleInvalidExplanation(explanationCard, explanationContent) {
-  explanationContent.innerHTML = `
-    <div class="error-message">
-      <strong>Error processing the explanation</strong>
-      <br><br>
-      <ul>
-        <li>The response format was invalid</li>
-        <li>Try extracting changes again</li>
-        <li>If the issue persists, please check the console for details</li>
-      </ul>
-    </div>
-  `;
 }
 
 function escapeHtml(unsafe) {
