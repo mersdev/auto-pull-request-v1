@@ -27,13 +27,13 @@ body {
 }
 
 .container {
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  padding: 1.5rem;
   gap: 1.5rem;
-  height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-height: 600px;
+  overflow-y: auto;
 }
 
 .header {
@@ -88,6 +88,7 @@ body {
 
 #fileName {
   flex: 1;
+  min-height: 100px;
   overflow-y: auto;
   padding: 0 0.5rem;
 }
@@ -233,7 +234,9 @@ body {
 
 /* Shadcn/UI Card styles for explanation */
 .explanation-card {
-  margin-top: 1.5rem;
+  flex: 1;
+  min-height: 100px;
+  margin-top: 1rem;
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
   background: white;
@@ -259,6 +262,8 @@ body {
 .explanation-content {
   padding: 1.5rem;
   color: hsl(var(--muted-foreground));
+  overflow-y: auto;
+  max-height: 400px;
 }
 
 .explanation-section {
@@ -318,4 +323,23 @@ body {
 
 .error-message li::before {
   color: #991b1b;
+}
+
+/* Ensure both sections are visible */
+#fileName:not(.hidden),
+.explanation-card:not(.hidden) {
+  display: block;
+}
+
+/* Add spacing between sections */
+.explanation-card:not(.hidden) {
+  margin-top: 1.5rem;
+}
+
+/* Scrollable content */
+.container,
+#fileName,
+.explanation-content {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
 }

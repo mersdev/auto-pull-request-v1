@@ -34,7 +34,8 @@ function updateFileNameDisplay(message) {
 }
 
 function hideExplanation() {
-  document.getElementById("explanation").classList.add("hidden");
+  const explanationCard = document.getElementById("explanation");
+  explanationCard.classList.add("hidden");
 }
 
 function resetExplanationDisplay() {
@@ -203,16 +204,32 @@ function handleIncomingMessages(message) {
   ) {
     const formattedOutput = formatFileChanges(message.fileNames);
     fileNameSpan.innerHTML = formattedOutput;
+    fileNameSpan.classList.remove("hidden");
   } else if (message.type === "ERROR") {
     fileNameSpan.textContent = message.fileName;
   }
 
   if (message.type === "EXPLANATION_TO_POPUP" && message.explanation) {
-    processExplanation(
-      explanationCard,
-      explanationContent,
-      message.explanation
-    );
+    try {
+      processExplanation(
+        explanationCard,
+        explanationContent,
+        message.explanation
+      );
+      explanationCard.classList.remove("hidden");
+      fileNameSpan.classList.remove("hidden");
+    } catch (error) {
+      console.error("Error processing explanation:", error);
+      handleInvalidExplanation(explanationCard, explanationContent);
+    }
+  }
+
+  if (message.type === "REVIEW_MESSAGE_COPIED") {
+    showNotification("Review message copied to clipboard!", message.message);
+  }
+
+  if (message.type === "ERROR") {
+    showNotification("Error", message.message, "error");
   }
 
   resetExtractButton(extractButton);
@@ -265,39 +282,16 @@ function formatCodeLine(change) {
 
 function processExplanation(explanationCard, explanationContent, explanation) {
   try {
-    if (explanation.startsWith("Error:")) {
-      handleErrorExplanation(explanationCard, explanationContent, explanation);
-      return;
-    }
-
     const parsedExplanation = JSON.parse(explanation);
     handleValidExplanation(
       explanationCard,
       explanationContent,
       parsedExplanation
     );
-  } catch (e) {
+  } catch (error) {
+    console.error("Error parsing explanation:", error);
     handleInvalidExplanation(explanationCard, explanationContent);
   }
-}
-
-function handleErrorExplanation(
-  explanationCard,
-  explanationContent,
-  explanation
-) {
-  explanationCard.classList.remove("hidden");
-  explanationContent.innerHTML = `
-    <div class="error-message">
-      <strong>⚠️ ${explanation}</strong>
-      <br><br>
-      <ul>
-        <li>Please make sure Ollama is running on localhost:11434</li>
-        <li>Check if the model "llama3" is available</li>
-        <li>Try reloading the extension and the page</li>
-      </ul>
-    </div>
-  `;
 }
 
 function handleValidExplanation(
@@ -309,7 +303,6 @@ function handleValidExplanation(
     throw new Error("Invalid explanation format");
   }
 
-  explanationCard.classList.remove("hidden");
   explanationContent.innerHTML = `
     <div class="explanation-title">${parsedExplanation.title}</div>
     
@@ -331,7 +324,6 @@ function handleValidExplanation(
 }
 
 function handleInvalidExplanation(explanationCard, explanationContent) {
-  explanationCard.classList.remove("hidden");
   explanationContent.innerHTML = `
     <div class="error-message">
       <strong>Error processing the explanation</strong>
