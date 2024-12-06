@@ -1,198 +1,199 @@
-// Load environment variables
-let GEMINI_API_KEY;
+// Constants for configuration and error messages
+const ERROR_MESSAGES = {
+  INVALID_API_KEY:
+    "Error: Invalid API key. Please check your Gemini API key in .env file.",
+  RATE_LIMIT: "Error: Rate limit exceeded. Please try again later.",
+  CONNECTION_FAILED:
+    "Error: Failed to connect to Gemini API. Please check your internet connection.",
+  API_KEY_NOT_FOUND:
+    "Error: GEMINI_API_KEY not found in .env file. Please add your API key.",
+  INVALID_RESPONSE:
+    "Error: Received invalid response format. Please try again.",
+  UNEXPECTED_ERROR: "An unexpected error occurred.",
+};
 
-// Function to load API key from .env
+const GEMINI_CONFIG = {
+  BASE_URL:
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+  PROMPT_TEMPLATE: (
+    changes
+  ) => `You are a code review assistant. Please analyze the following code changes and provide a response in valid JSON format with exactly these fields:
+{
+  "title": "A concise one-line summary of the main changes",
+  "sections": {
+    "summary": ["Key points about the overall changes"],
+    "implementation": ["Technical implementation details"],
+    "impact": ["Breaking changes", "Dependencies affected"],
+    "testing": ["Testing requirements", "Areas to focus testing"],
+    "recommendations": ["Suggestions for improvement", "Best practices to consider"]
+  }
+}
+
+IMPORTANT: 
+- Your response must be ONLY the JSON object, nothing else.
+- Do not include any explanations or markdown formatting.
+- The response must be valid JSON that can be parsed with JSON.parse().
+- Keep each point concise and actionable.
+- Limit each section to 2-3 key points.
+
+Example response:
+{
+  "title": "Added user authentication system",
+  "sections": {
+    "summary": ["Implements JWT-based authentication", "Adds user login/signup endpoints"],
+    "implementation": ["Uses bcrypt for password hashing", "JWT tokens expire in 24h"],
+    "impact": ["Requires environment variables for JWT_SECRET", "Updates to user model schema"],
+    "testing": ["Add tests for auth middleware", "Verify token expiration handling"],
+    "recommendations": ["Consider adding refresh tokens", "Add rate limiting for auth endpoints"]
+  }
+}
+
+Changes to analyze:
+${changes}`,
+};
+
+// Global variable to store API key
+let GEMINI_API_KEY = null;
+
+// Function to load API key from .env file
 async function loadApiKey() {
   try {
     const response = await fetch(chrome.runtime.getURL(".env"));
     const text = await response.text();
     const envVars = text.split("\n").reduce((acc, line) => {
       const [key, value] = line.split("=");
-      if (key && value) {
-        acc[key.trim()] = value.trim();
-      }
-      return acc;
+      return key && value ? { ...acc, [key.trim()]: value.trim() } : acc;
     }, {});
 
     GEMINI_API_KEY = envVars.GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY not found in .env file");
-    }
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not found");
+    return GEMINI_API_KEY;
   } catch (error) {
     console.error("Error loading API key:", error);
     throw error;
   }
 }
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-
-// Function to test if Gemini API is available
+// Function to test Gemini API availability
 async function testGeminiAvailability() {
+  if (!GEMINI_API_KEY) await loadApiKey();
+
+  const response = await fetch(
+    `${GEMINI_CONFIG.BASE_URL}?key=${GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: "Hi" }] }],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return true;
+}
+
+// Function to format changes for prompt
+function formatChanges(changes) {
+  return changes
+    .map(
+      (file) => `
+      File: ${file.fileName}
+      Removed lines:
+      ${file.removed.join("\n")}
+      Added lines:
+      ${file.added.join("\n")}
+    `
+    )
+    .join("\n\n");
+}
+
+// Function to get code review from Gemini
+async function getCodeReview(changes) {
+  await testGeminiAvailability();
+
+  const formattedChanges = formatChanges(changes);
+  const prompt = GEMINI_CONFIG.PROMPT_TEMPLATE(formattedChanges);
+
+  const response = await fetch(
+    `${GEMINI_CONFIG.BASE_URL}?key=${GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 1,
+          topP: 1,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message || "Unknown error");
+  if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+    throw new Error("Invalid response structure from Gemini API");
+  }
+
+  const responseText = data.candidates[0].content.parts[0].text
+    .trim()
+    .replace(/```json\n?|\n?```/g, "")
+    .replace(/[\u201C\u201D]/g, '"') // Replace smart quotes with straight quotes
+    .trim();
+
   try {
-    // Ensure API key is loaded
-    if (!GEMINI_API_KEY) {
-      await loadApiKey();
+    const parsedResponse = JSON.parse(responseText);
+
+    // Validate response structure
+    if (
+      !parsedResponse.title ||
+      !parsedResponse.sections ||
+      !parsedResponse.sections.summary ||
+      !parsedResponse.sections.implementation ||
+      !parsedResponse.sections.impact ||
+      !parsedResponse.sections.testing ||
+      !parsedResponse.sections.recommendations
+    ) {
+      throw new Error("Missing required fields in response");
     }
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: "Hi",
-              },
-            ],
-          },
-        ],
-      }),
+    // Ensure all sections are arrays
+    Object.keys(parsedResponse.sections).forEach((key) => {
+      if (!Array.isArray(parsedResponse.sections[key])) {
+        parsedResponse.sections[key] = [parsedResponse.sections[key]];
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("Gemini test response:", data);
-    return true;
+    return parsedResponse;
   } catch (error) {
-    console.error("Gemini test failed:", error);
-    if (error.message.includes("401")) {
-      throw new Error(
-        "Invalid API key. Please check your Gemini API key in .env file."
-      );
-    } else if (error.message.includes("429")) {
-      throw new Error("Rate limit exceeded. Please try again later.");
-    }
-    throw error;
+    console.error("JSON parsing error:", error, "Response text:", responseText);
+    throw new Error("Failed to parse Gemini API response");
   }
 }
 
-// Listen for messages from content script
+// Message listener for handling code review requests
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "EXPLAIN_CHANGES") {
-    const changes = message.changes;
-
-    // Format the changes for the prompt
-    const prompt = changes
-      .map(
-        (file) => `
-        File: ${file.fileName}
-        Removed lines:
-        ${file.removed.join("\n")}
-        Added lines:
-        ${file.added.join("\n")}
-          `
-      )
-      .join("\n\n");
-
-    // First test Gemini availability
-    testGeminiAvailability()
-      .then(async () => {
-        // Ensure API key is loaded
-        if (!GEMINI_API_KEY) {
-          await loadApiKey();
-        }
-
-        // If Gemini is available, proceed with the explanation request
-        return fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `You are a code review assistant. Please analyze the following code changes and provide a response in valid JSON format with exactly these fields:
-                {
-                  "title": "A concise one-line summary of the main changes",
-                  "desc": "A description that includes:
-                    - Key changes and their purpose
-                    - Important implementation details 
-                    - Any breaking changes or dependencies
-                    - Testing considerations"
-                }
-
-                IMPORTANT: Your response must be ONLY the JSON object, nothing else.
-                Do not include any explanations or markdown formatting.
-                The response must be valid JSON that can be parsed with JSON.parse().
-
-                Changes to analyze:
-                ${prompt}`,
-                  },
-                ],
-              },
-            ],
-          }),
+    getCodeReview(message.changes)
+      .then((explanation) => {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          type: "EXPLANATION_RESULT",
+          explanation: JSON.stringify(explanation),
         });
-      })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (data.error) {
-          throw new Error(data.error.message || "Unknown error occurred");
-        }
-
-        // Extract and validate the response text
-        const responseText = data.candidates[0].content.parts[0].text.trim();
-        console.log("Raw Gemini response:", responseText);
-
-        // Try to parse the response as JSON
-        try {
-          // Remove any potential markdown code block markers
-          const cleanedResponse = responseText
-            .replace(/```json\n?|\n?```/g, "")
-            .trim();
-          const parsedExplanation = JSON.parse(cleanedResponse);
-
-          // Validate the required fields
-          if (!parsedExplanation.title || !parsedExplanation.desc) {
-            throw new Error("Response missing required fields");
-          }
-
-          // Send the explanation back to the content script
-          console.log("Processed explanation:", parsedExplanation);
-          chrome.tabs.sendMessage(sender.tab.id, {
-            type: "EXPLANATION_RESULT",
-            explanation: JSON.stringify(parsedExplanation),
-          });
-        } catch (parseError) {
-          console.error("Failed to parse Gemini response:", parseError);
-          throw new Error("Invalid response format from Gemini API");
-        }
       })
       .catch((error) => {
         console.error("Error:", error);
-        let errorMessage = "An unexpected error occurred.";
-
-        if (error.message.includes("401")) {
-          errorMessage =
-            "Error: Invalid API key. Please check your Gemini API key in .env file.";
-        } else if (error.message.includes("429")) {
-          errorMessage = "Error: Rate limit exceeded. Please try again later.";
-        } else if (error.message.includes("Failed to fetch")) {
-          errorMessage =
-            "Error: Failed to connect to Gemini API. Please check your internet connection.";
-        } else if (error.message.includes("GEMINI_API_KEY not found")) {
-          errorMessage =
-            "Error: GEMINI_API_KEY not found in .env file. Please add your API key.";
-        } else if (error.message.includes("Invalid response format")) {
-          errorMessage =
-            "Error: Received invalid response format. Please try again.";
-        } else {
-          errorMessage = `Error: ${error.message}`;
-        }
+        const errorMessage =
+          Object.values(ERROR_MESSAGES).find((msg) =>
+            error.message.includes(msg)
+          ) || ERROR_MESSAGES.UNEXPECTED_ERROR;
 
         chrome.tabs.sendMessage(sender.tab.id, {
           type: "EXPLANATION_RESULT",
@@ -200,8 +201,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       });
   } else if (message.type === "EXPLANATION_TO_POPUP") {
-    // Forward explanation to popup
     chrome.runtime.sendMessage(message);
   }
-  return true; // Required for async response
+  return true;
 });
