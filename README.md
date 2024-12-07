@@ -1,107 +1,53 @@
-# Azure DevOps Code Changes Analyzer
+# Git Pull Request Helper
 
-A Chrome extension that automatically extracts and analyzes code changes from Azure DevOps pull requests using Google's Gemini AI.
+A browser extension that helps you extract and analyze code changes from pull requests, making code review more efficient and organized.
 
 ## Features
 
-- 🔍 Automatically extracts code changes from Azure DevOps pull requests
-- 🤖 Uses Gemini AI to provide intelligent code change analysis
-- 📊 Shows detailed statistics for added and removed lines
-- 💡 Provides concise summaries and important implementation details
-- 🎨 Modern UI with Shadcn/UI styling
+- Quick access to pull request changes through a convenient popup interface
+- Extract code changes from your current branch
+- Clean and modern user interface with a professional design
+- Seamless integration with Git platforms
 
 ## Installation
 
-1. Clone the repository:
+1. Clone this repository
 
 ```bash
-git clone https://github.com/yourusername/auto-pull-request-v1.git
-cd auto-pull-request-v1
+git clone https://github.com/mersdev/git-pull-request-helper.git
 ```
 
-2. Create a `.env` file in the root directory and add your Gemini API key:
-
-```bash
-GEMINI_API_KEY=your_api_key_here
-```
-
-3. Load the extension in Chrome:
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode" in the top right
-   - Click "Load unpacked" and select the extension directory
+2. Open Chrome/Edge and navigate to `chrome://extensions/`
+3. Enable "Developer mode" in the top right corner
+4. Click "Load unpacked" and select the cloned repository folder
 
 ## Usage
 
-1. Navigate to any Azure DevOps pull request
-2. Click the extension icon in your Chrome toolbar
-3. Click "Extract Changes" to analyze the code
-4. View the detailed changes and AI-generated explanation
-
-## Project Structure
-
-```
-├── manifest.json          # Extension configuration
-├── popup.html            # Extension popup UI
-├── popup.js              # Popup functionality
-├── background.js         # Background script for API calls
-├── content.js            # Content script for page interaction
-├── styles.css            # UI styling
-└── .env                  # Environment variables (not tracked in git)
-```
+1. Navigate to your pull request
+2. Click the extension icon in your browser toolbar
+3. Click "Extract Changes" to analyze the code changes
+4. Review the extracted changes in an organized format
 
 ## Development
 
-### Prerequisites
-
-- Google Chrome browser
-- Gemini API key (get one from [Google AI Studio](https://makersuite.google.com/app/apikey))
-- Node.js and npm (optional, for development)
-
 ### Local Development
 
-1. Make changes to the code
-2. Reload the extension in Chrome
-3. Test your changes
-
-### Building for Production
-
-1. Update version in `manifest.json`
-2. Create a zip file of the extension:
-
-```bash
-zip -r extension.zip . -x "*.git*" "*.env*" "README.md"
-```
-
-## Security
-
-- API keys are stored in `.env` file (not tracked in git)
-- Content Security Policy (CSP) implemented
-- Secure communication between content script and background script
-- No sensitive data is stored or transmitted
+1. Make your changes to the source code
+2. Reload the extension in your browser
+3. Test the changes by using the extension
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## Error Handling
-
-The extension handles various error cases:
-
-- Invalid/missing API key
-- Network connectivity issues
-- Rate limiting
-- Invalid response formats
-- Missing required fields
+2. Create a new branch for your feature
+3. Commit your changes
+4. Push to your branch
+5. Open a pull request
 
 ## License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Support
 
-- [Google Gemini AI](https://deepmind.google/technologies/gemini/) for code analysis
-- [Shadcn/UI](https://ui.shadcn.com/) for UI components
-- Azure DevOps team for their platform
+If you encounter any issues or have suggestions for improvements, please open an issue in the GitHub repository.

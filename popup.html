@@ -1,59 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Azure DevOps Diff Extractor</title>
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self' http://localhost:11434; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
-    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Git Pull Request Helper</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link href="styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="container">
+    <div class="container popup">
       <div class="header">
-        <h1 class="title">Azure DevOps Diff Extractor</h1>
-        <button id="extractButton">Extract Changes</button>
+        <div class="logo">
+          <img src="images/logo.svg" alt="Logo" width="48" height="48" />
+        </div>
+        <h1 class="title">Git Pull Request Helper</h1>
+        <p class="subtitle">
+          Extract and analyze code changes from your current branch
+        </p>
       </div>
 
-      <!-- Code Changes Section -->
-      <div id="fileName" class="section-card">
-        <div class="section-header">
-          <h2 class="section-title">Code Changes</h2>
-        </div>
-        <div class="section-content">
-          <div class="empty-state">Click 'Extract Changes' to start</div>
-        </div>
-      </div>
+      <button id="extractButton" class="primary-button">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M10 4V16M10 16L6 12M10 16L14 12"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Extract Changes
+      </button>
 
-      <!-- Explanation Section -->
-      <div id="explanation" class="section-card hidden">
-        <div class="section-header">
-          <h2 class="section-title">Changes Explanation</h2>
-        </div>
-        <div class="explanation-content"></div>
-      </div>
-
-      <!-- Review Message Section -->
-      <div id="reviewMessage" class="section-card hidden">
-        <div class="section-header">
-          <h2 class="section-title">Review Request Message</h2>
-          <div class="button-group">
-            <button id="copyMessageButton" class="copy-button">
-              <span class="button-text">Copy Message</span>
-            </button>
-            <button id="regenerateMessageButton" class="regenerate-button">
-              <span class="button-text">Regenerate</span>
-            </button>
-          </div>
-        </div>
-        <div class="section-content">
-          <pre id="messageText" class="message-text"></pre>
-        </div>
-      </div>
+      <div id="statusMessage" class="status-message hidden"></div>
     </div>
     <script src="popup.js"></script>
   </body>
