@@ -1,8 +1,8 @@
 // Azure DevOps-specific selectors
 const AZURE_SELECTORS = {
   fileName: ".repos-summary-header .body-s.secondary-text.text-ellipsis",
-  reposHeader: ".repos-summary-header",
-  codeContent: ".repos-line-content",
+  reposHeader: "repos-summary-header",
+  codeContent: "repos-line-content",
   filesTab: "#__bolt-tab-files",
   reposViewer: ".repos-changes-viewer",
 };
@@ -42,7 +42,9 @@ function extractAzureFileData(header) {
   }
 
   const diffContent = [];
-  const codeElements = header.getElementsByClassName("repos-line-content");
+  const codeElements = header.getElementsByClassName(
+    AZURE_SELECTORS.codeContent
+  );
 
   for (const code of codeElements) {
     const type = code.classList.contains("removed")
@@ -66,42 +68,74 @@ function extractAzureFileData(header) {
 // Azure DevOps-specific scroll and extract
 function handleAzureExtraction(callback) {
   const filesTab = document.querySelector(AZURE_SELECTORS.filesTab);
-  const viewer = document.querySelector(AZURE_SELECTORS.reposViewer);
-
-  if (!filesTab || !viewer) {
-    return callback(new Error("Azure DevOps files tab or viewer not found"));
+  if (!filesTab) {
+    console.error("Files tab not found with any selector");
+    return callback(
+      new Error(
+        "Azure DevOps files tab not found. Please make sure you're on a pull request page."
+      )
+    );
   }
 
+  // Click the files tab and wait for the viewer to load
   filesTab.click();
+
+  // Wait for the viewer to be available
   setTimeout(() => {
+    const viewer = document.querySelector(AZURE_SELECTORS.reposViewer);
+    if (!viewer) {
+      console.error("Repos viewer not found with any selector");
+      return callback(
+        new Error(
+          "Azure DevOps changes viewer not found. Please try refreshing the page."
+        )
+      );
+    }
+
+    // Scroll to load all content
     viewer.scrollTo({
       top: viewer.scrollHeight,
       behavior: "smooth",
     });
 
     setTimeout(() => {
+      // Scroll back to top
       viewer.scrollTo({
         top: 0,
         behavior: "smooth",
       });
-      const changes = extractAzureChanges();
-      const formattedChanges = changes.map((file) => ({
-        fileName: file.fileName,
-        added: file.changes
-          .filter((change) => change.type === "added")
-          .map((change) => change.content),
-        removed: file.changes
-          .filter((change) => change.type === "removed")
-          .map((change) => change.content),
-      }));
-      callback(null, formattedChanges);
-    }, 3000);
-  }, 2000);
+
+      // Extract and format changes
+      try {
+        const changes = extractAzureChanges();
+        if (!changes || changes.length === 0) {
+          return callback(
+            new Error(
+              "No changes found. Please make sure you're on a pull request with changes."
+            )
+          );
+        }
+
+        const formattedChanges = changes.map((file) => ({
+          fileName: file.fileName,
+          added: file.changes
+            .filter((change) => change.type === "added")
+            .map((change) => change.content),
+          removed: file.changes
+            .filter((change) => change.type === "removed")
+            .map((change) => change.content),
+        }));
+
+        callback(null, formattedChanges);
+      } catch (error) {
+        console.error("Error extracting changes:", error);
+        callback(new Error("Error extracting changes. Please try again."));
+      }
+    }, 3000); // Wait for content to load after scrolling
+  }, 2000); // Wait for files tab click to take effect
 }
 
-export {
-  getAzureFileName,
-  extractAzureChanges,
-  handleAzureExtraction,
-  AZURE_SELECTORS,
-};
+// Make functions globally available
+window.getAzureFileName = getAzureFileName;
+window.handleAzureExtraction = handleAzureExtraction;
+window.AZURE_SELECTORS = AZURE_SELECTORS;

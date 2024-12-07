@@ -1,6 +1,3 @@
-import { getGitHubFileName, handleGitHubExtraction } from "./github-handler.js";
-import { getAzureFileName, handleAzureExtraction } from "./azure-handler.js";
-
 // Platform detection
 function detectPlatform() {
   const url = window.location.href;
@@ -8,6 +5,16 @@ function detectPlatform() {
     return "azure";
   } else if (url.includes("github.com")) {
     return "github";
+  }
+  return null;
+}
+
+// Get platform selectors
+function getPlatformSelectors(platform) {
+  if (platform === "azure") {
+    return window.AZURE_SELECTORS;
+  } else if (platform === "github") {
+    return window.GITHUB_SELECTORS;
   }
   return null;
 }
@@ -22,9 +29,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (platform === "azure") {
-      getAzureFileName(sendResponse);
+      window.getAzureFileName(sendResponse);
     } else if (platform === "github") {
-      getGitHubFileName(sendResponse);
+      window.getGitHubFileName(sendResponse);
     }
   }
 });
@@ -52,8 +59,19 @@ chrome.runtime.onMessage.addListener((message) => {
 // Extract changes based on platform
 function extractChanges(callback) {
   const platform = detectPlatform();
+  if (!platform) {
+    callback(new Error("Unsupported platform"));
+    return;
+  }
+
+  const selectors = getPlatformSelectors(platform);
+  if (!selectors) {
+    callback(new Error("Platform selectors not found"));
+    return;
+  }
+
   if (platform === "azure") {
-    handleAzureExtraction((error, changes) => {
+    window.handleAzureExtraction((error, changes) => {
       if (error) {
         callback(error);
         return;
@@ -62,7 +80,7 @@ function extractChanges(callback) {
       callback(null, changes);
     });
   } else if (platform === "github") {
-    handleGitHubExtraction((error, changes) => {
+    window.handleGitHubExtraction((error, changes) => {
       if (error) {
         callback(error);
         return;
@@ -70,10 +88,11 @@ function extractChanges(callback) {
       forwardFileChanges(changes);
       callback(null, changes);
     });
-  } else {
-    callback(new Error("Unsupported platform"));
   }
 }
 
-// Export for use in other modules
-export { detectPlatform, extractChanges, forwardFileChanges };
+// Make functions globally available
+window.detectPlatform = detectPlatform;
+window.extractChanges = extractChanges;
+window.forwardFileChanges = forwardFileChanges;
+window.getPlatformSelectors = getPlatformSelectors;

@@ -1,21 +1,4 @@
 // Step 1: Constants and Utility Functions
-const PLATFORM_SELECTORS = {
-  azure: {
-    REPOS_HEADER: ".repos-summary-header",
-    FILE_NAME: ".body-s.secondary-text.text-ellipsis",
-    CODE_CONTENT: ".repos-line-content",
-    FILES_TAB: "#__bolt-tab-files",
-    REPOS_VIEWER: ".repos-changes-viewer",
-  },
-  github: {
-    REPOS_HEADER: ".file",
-    FILE_NAME: ".file-header[data-path]",
-    CODE_CONTENT: ".diff-table tr",
-    FILES_TAB: ".js-pull-request-tab[data-tab-item='files']",
-    REPOS_VIEWER: ".pull-request-tab-content",
-  },
-};
-
 const MESSAGE_TYPES = {
   FILE_CHANGES: "FILE_CHANGES",
   EXPLAIN_CHANGES: "EXPLAIN_CHANGES",
@@ -96,146 +79,47 @@ function createExtractionScript() {
         message: "📑 Collecting file changes...",
       });
 
-      const selectors = PLATFORM_SELECTORS[platform];
-      const headers = document.getElementsByClassName(selectors.REPOS_HEADER);
-      const fileNameAndCodes = [];
-
-      for (const header of headers) {
-        const extractedData =
-          platform === "azure"
-            ? extractAzureFileNamesAndCodes(header, selectors)
-            : extractGithubFileNamesAndCodes(header, selectors);
-
-        if (extractedData) {
-          fileNameAndCodes.push(extractedData);
-        }
+      if (platform === "azure") {
+        window.handleAzureExtraction((error, changes) => {
+          if (error) {
+            chrome.runtime.sendMessage({
+              type: "ERROR",
+              message: error.message,
+            });
+            return;
+          }
+          chrome.runtime.sendMessage({
+            type: "FILE_CHANGES",
+            fileNames: changes,
+            platform: platform,
+          });
+          explainChangesForAllCodes(changes);
+        });
+      } else if (platform === "github") {
+        window.handleGitHubExtraction((error, changes) => {
+          if (error) {
+            chrome.runtime.sendMessage({
+              type: "ERROR",
+              message: error.message,
+            });
+            return;
+          }
+          chrome.runtime.sendMessage({
+            type: "FILE_CHANGES",
+            fileNames: changes,
+            platform: platform,
+          });
+          explainChangesForAllCodes(changes);
+        });
       }
-
-      chrome.runtime.sendMessage({
-        type: "FILE_CHANGES",
-        fileNames: fileNameAndCodes,
-        platform: platform,
-      });
-
-      chrome.runtime.sendMessage({
-        type: "STATUS_UPDATE",
-        message: "🤖 Analyzing changes...",
-      });
-      explainChangesForAllCodes(fileNameAndCodes);
     }
 
-    function extractAzureFileNamesAndCodes(header, selectors) {
-      const fileNameElement = header.querySelector(selectors.FILE_NAME);
-
-      if (!fileNameElement) {
-        console.log("No filename found for header");
-        return null;
-      }
-
-      const diffContent = [];
-      const codeElements = header.getElementsByClassName("repos-line-content");
-
-      for (const code of codeElements) {
-        const type = code.classList.contains("removed")
-          ? "removed"
-          : code.classList.contains("added")
-          ? "added"
-          : "unchanged";
-
-        const content = code.textContent.trim();
-        if (content) {
-          diffContent.push({ type, content });
-        }
-      }
-
-      return {
-        fileName: fileNameElement.textContent.trim(),
-        changes: diffContent,
-      };
-    }
-
-    function extractGithubFileNamesAndCodes(fileElement, selectors) {
-      const fileNameElement = fileElement.querySelector(selectors.FILE_NAME);
-
-      if (!fileNameElement) {
-        console.log("No filename found for file");
-        return null;
-      }
-
-      const diffContent = [];
-      const diffLines = fileElement.querySelectorAll(".diff-table tr");
-
-      diffLines.forEach((line) => {
-        if (line.classList.contains("deletion")) {
-          const content = line
-            .querySelector(".blob-code-deletion")
-            ?.textContent?.trim();
-          if (content) diffContent.push({ type: "removed", content });
-        } else if (line.classList.contains("addition")) {
-          const content = line
-            .querySelector(".blob-code-addition")
-            ?.textContent?.trim();
-          if (content) diffContent.push({ type: "added", content });
-        }
-      });
-
-      return {
-        fileName: fileNameElement.getAttribute("data-path"),
-        changes: diffContent,
-      };
-    }
-
-    function explainChangesForAllCodes(fileNameAndCodes) {
-      const changes = fileNameAndCodes
-        .filter((file) => file !== null)
-        .map((file) => ({
-          fileName: file.fileName,
-          added: file.changes
-            .filter((change) => change.type === "added")
-            .map((change) => change.content),
-          removed: file.changes
-            .filter((change) => change.type === "removed")
-            .map((change) => change.content),
-        }));
-
+    function explainChangesForAllCodes(changes) {
       chrome.runtime.sendMessage({
         type: "EXPLAIN_CHANGES",
         changes: changes,
         platform: detectPlatform(),
       });
-    }
-
-    function scrollDownToGetAllCodes() {
-      const platform = detectPlatform();
-      if (!platform) return;
-
-      const selectors = PLATFORM_SELECTORS[platform];
-      const viewer = document.querySelector(selectors.REPOS_VIEWER);
-
-      if (viewer) {
-        chrome.runtime.sendMessage({
-          type: "STATUS_UPDATE",
-          message: "📜 Scanning all changes...",
-        });
-        viewer.scrollTo({
-          top: viewer.scrollHeight,
-          behavior: "smooth",
-        });
-
-        setTimeout(() => {
-          viewer.scrollTo({
-            top: 0,
-            behavior: "smooth",
-          });
-          extractFileNames();
-        }, 3000);
-      } else {
-        chrome.runtime.sendMessage({
-          type: "ERROR",
-          message:
-            "❌ Viewer not found - please make sure you're on a diff view",
-        });
-      }
     }
 
     const platform = detectPlatform();
@@ -247,23 +131,29 @@ function createExtractionScript() {
       return;
     }
 
-    const selectors = PLATFORM_SELECTORS[platform];
-    const filesTab = document.querySelector(selectors.FILES_TAB);
-
-    if (filesTab) {
-      chrome.runtime.sendMessage({
-        type: "STATUS_UPDATE",
-        message: "📂 Going to Files tab...",
-      });
-      filesTab.click();
-      setTimeout(scrollDownToGetAllCodes, 2000);
-    } else {
+    // Get the appropriate handler based on platform
+    const handler =
+      platform === "azure"
+        ? window.handleAzureExtraction
+        : window.handleGitHubExtraction;
+    if (!handler) {
       chrome.runtime.sendMessage({
         type: "ERROR",
-        message:
-          "❌ Files tab not found - please make sure you're on the correct page",
+        message: "❌ Platform handler not found",
       });
+      return;
     }
+
+    handler((error, changes) => {
+      if (error) {
+        chrome.runtime.sendMessage({
+          type: "ERROR",
+          message: error.message,
+        });
+        return;
+      }
+      extractFileNames();
+    });
   };
 }
 
@@ -308,6 +198,7 @@ function handleIncomingMessages(message) {
 
   if (message.type === "STATUS_UPDATE") {
     showStatus(message.message);
+    updatePlatformStatus();
   } else if (
     message.type === "FILE_CHANGES" &&
     message.fileNames &&
@@ -410,10 +301,47 @@ function generateDefaultReviewMessage(explanation) {
 }
 
 // Step 6: Initialize Event Listeners
+async function updatePlatformStatus() {
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    const url = tab.url;
+
+    const platformLogo = document.getElementById("platformLogo");
+    const platformText = document.getElementById("platformText");
+    const platformStatus = document.getElementById("platformStatus");
+
+    if (url.includes("dev.azure.com")) {
+      platformLogo.src = "images/ado.png";
+      platformText.textContent = "Azure DevOps";
+      platformStatus.className = "status-dot online";
+    } else if (url.includes("github.com")) {
+      platformLogo.src = "images/github.png";
+      platformText.textContent = "GitHub";
+      platformStatus.className = "status-dot online";
+    } else {
+      platformLogo.src = "images/404.png";
+      platformText.textContent = "Offline";
+      platformStatus.className = "status-dot offline";
+    }
+  } catch (error) {
+    console.error("Error updating platform status:", error);
+    // Set to offline state if there's an error
+    platformLogo.src = "images/404.png";
+    platformText.textContent = "Offline";
+    platformStatus.className = "status-dot offline";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const extractButton = document.getElementById("extractButton");
   extractButton.addEventListener("click", handleExtraction);
   isTabOpening = false; // Reset flag when popup opens
+
+  // Add platform status check
+  updatePlatformStatus();
 });
 
 chrome.runtime.onMessage.addListener(handleIncomingMessages);

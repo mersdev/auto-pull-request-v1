@@ -19,19 +19,17 @@
     "128": "images/icon.png"
   },
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["https://dev.azure.com/*", "https://github.com/*"],
-      "js": ["content.js", "azure-handler.js", "github-handler.js"],
-      "type": "module"
+      "js": ["azure-handler.js", "github-handler.js", "content.js"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["results.html", "azure-handler.js", "github-handler.js"],
+      "resources": ["results.html"],
       "matches": ["https://dev.azure.com/*", "https://github.com/*"]
     }
   ]

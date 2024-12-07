@@ -1,95 +1,187 @@
 // GitHub-specific selectors
 const GITHUB_SELECTORS = {
   fileName: ".file-header[data-path]",
-  diffElement: ".file",
-  diffTable: ".diff-table tr",
-  deletionLine: ".blob-code-deletion",
-  additionLine: ".blob-code-addition",
-  filesTab: ".js-pull-request-tab[data-tab-item='files']",
-  reposViewer: ".pull-request-tab-content",
+  reposHeader: ".file.js-file",
+  codeContent: ".blob-code",
+  reposViewer: ".js-diff-progressive-container",
+  reposViewerBackup: ".pull-request-tab-content",
+  deletionLine: ".blob-code-deletion .blob-code-inner",
+  additionLine: ".blob-code-addition .blob-code-inner",
+  pullRequestTitle: "#pull_request_title",
+  pullRequestBody: "#pull_request_body",
 };
 
 // Extract file names for GitHub
 function getGitHubFileName(sendResponse) {
-  const fileNameElements = document.querySelectorAll(GITHUB_SELECTORS.fileName);
-  if (fileNameElements.length > 0) {
-    const fileNames = Array.from(fileNameElements).map((el) =>
-      el.getAttribute("data-path")
+  const fileNameElement = document.querySelector(GITHUB_SELECTORS.fileName);
+  if (fileNameElement) {
+    sendResponse({
+      fileName: fileNameElement.getAttribute("data-path"),
+      platform: "github",
+    });
+  }
+}
+
+// Extract GitHub PR title and description
+function getGitHubPRDetails(callback) {
+  const titleElement = document.querySelector(
+    GITHUB_SELECTORS.pullRequestTitle
+  );
+  const bodyElement = document.querySelector(GITHUB_SELECTORS.pullRequestBody);
+
+  if (!titleElement || !bodyElement) {
+    return callback(
+      new Error(
+        "Pull request form elements not found. Make sure you're on the PR creation/edit page."
+      )
     );
-    sendResponse({ fileName: fileNames[0], platform: "github" });
+  }
+
+  callback(null, {
+    title: titleElement.value.trim(),
+    description: bodyElement.value.trim(),
+  });
+}
+
+// Set GitHub PR title and description
+function setGitHubPRDetails(title, description, callback) {
+  const titleElement = document.querySelector(
+    GITHUB_SELECTORS.pullRequestTitle
+  );
+  const bodyElement = document.querySelector(GITHUB_SELECTORS.pullRequestBody);
+
+  if (!titleElement || !bodyElement) {
+    return callback(
+      new Error(
+        "Pull request form elements not found. Make sure you're on the PR creation/edit page."
+      )
+    );
+  }
+
+  try {
+    titleElement.value = title;
+    bodyElement.value = description;
+
+    // Trigger input events to ensure GitHub's UI updates
+    titleElement.dispatchEvent(new Event("input", { bubbles: true }));
+    bodyElement.dispatchEvent(new Event("input", { bubbles: true }));
+
+    callback(null, { success: true });
+  } catch (error) {
+    callback(error);
   }
 }
 
 // GitHub specific extraction
 function extractGitHubChanges() {
-  const changes = [];
-  const diffElements = document.querySelectorAll(GITHUB_SELECTORS.diffElement);
+  const headers = document.querySelectorAll(GITHUB_SELECTORS.reposHeader);
+  const fileNameAndCodes = [];
 
-  diffElements.forEach((diffElement) => {
-    const fileName = diffElement
-      .querySelector(GITHUB_SELECTORS.fileName)
-      .getAttribute("data-path");
-    const removedLines = [];
-    const addedLines = [];
+  for (const header of headers) {
+    const extractedData = extractGitHubFileData(header);
+    if (extractedData) {
+      fileNameAndCodes.push(extractedData);
+    }
+  }
 
-    // Get all diff content lines
-    const diffLines = diffElement.querySelectorAll(GITHUB_SELECTORS.diffTable);
-    diffLines.forEach((line) => {
-      if (line.classList.contains("deletion")) {
-        const code = line.querySelector(
-          GITHUB_SELECTORS.deletionLine
-        )?.textContent;
-        if (code) removedLines.push(code.trim());
-      } else if (line.classList.contains("addition")) {
-        const code = line.querySelector(
-          GITHUB_SELECTORS.additionLine
-        )?.textContent;
-        if (code) addedLines.push(code.trim());
-      }
-    });
+  return fileNameAndCodes;
+}
 
-    if (removedLines.length > 0 || addedLines.length > 0) {
-      changes.push({
-        fileName,
-        removed: removedLines,
-        added: addedLines,
-      });
+function extractGitHubFileData(header) {
+  const fileNameElement = header.querySelector(GITHUB_SELECTORS.fileName);
+
+  if (!fileNameElement) {
+    console.log("No filename found for header");
+    return null;
+  }
+
+  const diffContent = [];
+  const deletions = header.querySelectorAll(GITHUB_SELECTORS.deletionLine);
+  const additions = header.querySelectorAll(GITHUB_SELECTORS.additionLine);
+
+  // Process deletions
+  deletions.forEach((line) => {
+    const content = line.textContent.trim();
+    if (content) {
+      diffContent.push({ type: "removed", content });
     }
   });
 
-  return changes;
+  // Process additions
+  additions.forEach((line) => {
+    const content = line.textContent.trim();
+    if (content) {
+      diffContent.push({ type: "added", content });
+    }
+  });
+
+  return {
+    fileName: fileNameElement.getAttribute("data-path"),
+    changes: diffContent,
+  };
 }
 
 // GitHub-specific scroll and extract
 function handleGitHubExtraction(callback) {
-  const filesTab = document.querySelector(GITHUB_SELECTORS.filesTab);
-  const viewer = document.querySelector(GITHUB_SELECTORS.reposViewer);
+  // Find the content viewer directly
+  const viewer =
+    document.querySelector(GITHUB_SELECTORS.reposViewer) ||
+    document.querySelector(GITHUB_SELECTORS.reposViewerBackup);
 
-  if (!filesTab || !viewer) {
-    return callback(new Error("GitHub files tab or viewer not found"));
+  if (!viewer) {
+    console.error("Content viewer not found with any selector");
+    return callback(
+      new Error(
+        "GitHub changes viewer not found. Please make sure you're on a pull request page."
+      )
+    );
   }
 
-  filesTab.click();
+  // Scroll to load all content
+  viewer.scrollTo({
+    top: viewer.scrollHeight,
+    behavior: "smooth",
+  });
+
+  // Wait for content to load and scroll back
   setTimeout(() => {
     viewer.scrollTo({
-      top: viewer.scrollHeight,
+      top: 0,
       behavior: "smooth",
     });
 
-    setTimeout(() => {
-      viewer.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+    // Extract and format changes
+    try {
       const changes = extractGitHubChanges();
-      callback(null, changes);
-    }, 3000);
-  }, 2000);
+      if (!changes || changes.length === 0) {
+        return callback(
+          new Error(
+            "No changes found. Please make sure you're on a pull request with changes."
+          )
+        );
+      }
+
+      const formattedChanges = changes.map((file) => ({
+        fileName: file.fileName,
+        added: file.changes
+          .filter((change) => change.type === "added")
+          .map((change) => change.content),
+        removed: file.changes
+          .filter((change) => change.type === "removed")
+          .map((change) => change.content),
+      }));
+
+      callback(null, formattedChanges);
+    } catch (error) {
+      console.error("Error extracting changes:", error);
+      callback(new Error("Error extracting changes. Please try again."));
+    }
+  }, 1000); // Reduced wait time since we don't need to wait for tab switch
 }
 
-export {
-  getGitHubFileName,
-  extractGitHubChanges,
-  handleGitHubExtraction,
-  GITHUB_SELECTORS,
-};
+// Make functions globally available
+window.getGitHubFileName = getGitHubFileName;
+window.handleGitHubExtraction = handleGitHubExtraction;
+window.GITHUB_SELECTORS = GITHUB_SELECTORS;
+window.getGitHubPRDetails = getGitHubPRDetails;
+window.setGitHubPRDetails = setGitHubPRDetails;
