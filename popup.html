@@ -1,28 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Azure DevOps Diff Extractor</title>
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self' http://localhost:11434; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
-    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Changes Extractor</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link href="styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="container popup">
       <div class="header">
-        <h1 class="title">Azure DevOps Diff Extractor</h1>
+        <div class="logo">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 48 48"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="24"
+              cy="24"
+              r="22"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M24 12L36 24L24 36L12 24L24 12Z"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+          </svg>
+        </div>
+        <h1 class="title">Code Changes Extractor</h1>
+        <p class="subtitle">
+          Extract and analyze code changes from your current branch
+        </p>
       </div>
-      <div class="content">
-        <button id="extractButton" class="primary-button">
-          Extract Changes
-        </button>
-        <div id="status" class="status-message hidden"></div>
-      </div>
+
+      <button id="extractButton" class="primary-button">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M10 4V16M10 16L6 12M10 16L14 12"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Extract Changes
+      </button>
+
+      <div id="statusMessage" class="status-message hidden"></div>
     </div>
     <script src="popup.js"></script>
   </body>

@@ -17,8 +17,23 @@ const MESSAGE_TYPES = {
 
 // Step 2: DOM Interaction Helper Functions
 function showStatus(message, isError = false) {
-  const status = document.getElementById("status");
-  status.textContent = message;
+  const status = document.getElementById("statusMessage");
+  let emoji = "🔄"; // Default processing emoji
+
+  // Map emojis to specific messages
+  if (message.includes("Extracting")) {
+    emoji = "🔍";
+  } else if (message.includes("Processing")) {
+    emoji = "⚡";
+  } else if (message.includes("Opening")) {
+    emoji = "🚀";
+  } else if (message.includes("Waiting")) {
+    emoji = "⏳";
+  } else if (isError) {
+    emoji = "❌";
+  }
+
+  status.textContent = `${emoji} ${message}`;
   status.classList.remove("hidden");
   if (isError) {
     status.classList.add("error");
@@ -28,7 +43,7 @@ function showStatus(message, isError = false) {
 }
 
 function hideStatus() {
-  const status = document.getElementById("status");
+  const status = document.getElementById("statusMessage");
   status.classList.add("hidden");
 }
 
@@ -48,6 +63,10 @@ function resetExtractButton(extractButton) {
 function createExtractionScript() {
   return () => {
     function extractFileNames() {
+      chrome.runtime.sendMessage({
+        type: "STATUS_UPDATE",
+        message: "📑 Collecting file changes...",
+      });
       const headers = document.getElementsByClassName("repos-summary-header");
       const fileNameAndCodes = [];
 
@@ -63,6 +82,10 @@ function createExtractionScript() {
         fileNames: fileNameAndCodes,
       });
 
+      chrome.runtime.sendMessage({
+        type: "STATUS_UPDATE",
+        message: "🤖 Analyzing changes...",
+      });
       explainChangesForAllCodes(fileNameAndCodes);
     }
 
@@ -121,6 +144,10 @@ function createExtractionScript() {
       const viewer = document.getElementsByClassName("repos-changes-viewer")[0];
 
       if (viewer) {
+        chrome.runtime.sendMessage({
+          type: "STATUS_UPDATE",
+          message: "📜 Scanning all changes...",
+        });
         viewer.scrollTo({
           top: viewer.scrollHeight,
           behavior: "smooth",
@@ -137,7 +164,7 @@ function createExtractionScript() {
         chrome.runtime.sendMessage({
           type: "ERROR",
           message:
-            "Viewer element not found - please make sure you're on a diff view",
+            "❌ Viewer not found - please make sure you're on a diff view",
         });
       }
     }
@@ -145,13 +172,17 @@ function createExtractionScript() {
     const filesTab = document.querySelector("#__bolt-tab-files");
 
     if (filesTab) {
+      chrome.runtime.sendMessage({
+        type: "STATUS_UPDATE",
+        message: "📂 Going to Files tab...",
+      });
       filesTab.click();
       setTimeout(scrollDownToGetAllCodes, 2000);
     } else {
       chrome.runtime.sendMessage({
         type: "ERROR",
         message:
-          "Files tab not found - please make sure you're on the correct page",
+          "❌ Files tab not found - please make sure you're on the correct page",
       });
     }
   };
@@ -163,16 +194,18 @@ async function handleExtraction() {
 
   try {
     disableExtractButton(extractButton);
-    showStatus("Extracting changes...");
+    showStatus("🚀 Starting extraction process...");
 
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
 
+    showStatus("🔄 Refreshing page...");
     await chrome.tabs.reload(tab.id);
 
     setTimeout(async () => {
+      showStatus("🔍 Preparing to extract changes...");
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: createExtractionScript(),
@@ -180,16 +213,23 @@ async function handleExtraction() {
     }, 3000);
   } catch (error) {
     console.error("Extraction failed:", error);
-    showStatus("Error during extraction", true);
+    showStatus(
+      "❌ Error during extraction. Please check your connection",
+      true
+    );
     resetExtractButton(extractButton);
   }
 }
 
 // Step 5: Message Handling
+let isTabOpening = false;
+
 function handleIncomingMessages(message) {
   const extractButton = document.getElementById("extractButton");
 
-  if (
+  if (message.type === "STATUS_UPDATE") {
+    showStatus(message.message);
+  } else if (
     message.type === "FILE_CHANGES" &&
     message.fileNames &&
     message.fileNames.length > 0
@@ -198,19 +238,28 @@ function handleIncomingMessages(message) {
     chrome.storage.local.set({
       fileChanges: message.fileNames,
     });
-    showStatus("Processing changes...");
+    showStatus("⚡ Processing code changes...");
   } else if (message.type === "ERROR") {
     showStatus(message.message, true);
     resetExtractButton(extractButton);
+    isTabOpening = false;
     return;
-  } else if (message.type === "EXPLANATION_TO_POPUP" && message.explanation) {
+  } else if (
+    message.type === "EXPLANATION_TO_POPUP" &&
+    message.explanation &&
+    !isTabOpening
+  ) {
     try {
       // First, check if we have all the necessary data
       chrome.storage.local.get(["fileChanges"], async (data) => {
         if (!data.fileChanges) {
-          showStatus("Waiting for code changes...", true);
+          showStatus("⏳ Waiting for code changes to be processed...", true);
           return;
         }
+
+        // Set flag to prevent multiple tabs
+        isTabOpening = true;
+        showStatus("📝 Generating review message...");
 
         // Generate review message if not provided
         const reviewMessage = generateDefaultReviewMessage(message.explanation);
@@ -221,34 +270,43 @@ function handleIncomingMessages(message) {
           reviewMessage: reviewMessage,
         });
 
-        // Show final status
-        showStatus("Opening results page...");
+        showStatus("🚀 Preparing results page...");
 
-        // Check for existing tabs with results.html
-        chrome.tabs.query(
-          { url: chrome.runtime.getURL("results.html") },
-          (tabs) => {
-            if (tabs.length > 0) {
-              // If tab exists, focus it and reload
-              chrome.tabs.update(tabs[0].id, {
-                active: true,
-                highlighted: true,
-              });
-              chrome.tabs.reload(tabs[0].id);
-            } else {
-              // If no tab exists, create new one
-              chrome.tabs.create({ url: "results.html" });
-            }
-            // Reset popup state
-            resetExtractButton(extractButton);
-            hideStatus();
+        try {
+          // Check for existing tabs with results.html
+          const resultsUrl = chrome.runtime.getURL("results.html");
+          const tabs = await chrome.tabs.query({ url: resultsUrl });
+
+          if (tabs.length > 0) {
+            showStatus("🔄 Updating existing results tab...");
+            // If tab exists, focus it and reload
+            await chrome.tabs.update(tabs[0].id, {
+              active: true,
+              highlighted: true,
+            });
+            await chrome.tabs.reload(tabs[0].id);
+          } else {
+            showStatus("✨ Creating new results tab...");
+            // If no tab exists, create new one
+            await chrome.tabs.create({ url: resultsUrl });
           }
-        );
+
+          // Reset popup state
+          resetExtractButton(extractButton);
+          hideStatus();
+        } catch (error) {
+          console.error("Error handling tabs:", error);
+          showStatus("❌ Error opening results page. Please try again", true);
+        } finally {
+          // Always reset the flag
+          isTabOpening = false;
+        }
       });
     } catch (error) {
       console.error("Error processing explanation:", error);
-      showStatus("Failed to process explanation", true);
+      showStatus("❌ Failed to process explanation. Please try again", true);
       resetExtractButton(extractButton);
+      isTabOpening = false;
     }
   }
 }
@@ -277,9 +335,7 @@ Would appreciate your review when you have a moment. Thanks!`;
 document.addEventListener("DOMContentLoaded", () => {
   const extractButton = document.getElementById("extractButton");
   extractButton.addEventListener("click", handleExtraction);
-
-  // Clear the resultsTabOpened flag when popup opens
-  chrome.storage.local.remove("resultsTabOpened");
+  isTabOpening = false; // Reset flag when popup opens
 });
 
 chrome.runtime.onMessage.addListener(handleIncomingMessages);

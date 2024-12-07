@@ -19,7 +19,7 @@ const GEMINI_CONFIG = {
     changes
   ) => `You are a code review assistant. Please analyze the following code changes and provide a response in valid JSON format with exactly these fields:
 {
-  "title": "A concise one-line summary of the main changes",
+  "title": "[SBODPOC-XXX] A concise one-line summary of the main changes",
   "sections": {
     "summary": ["Key points about the overall changes"],
     "implementation": ["Technical implementation details"],
@@ -37,7 +37,7 @@ IMPORTANT:
 
 Example response:
 {
-  "title": "Added user authentication system",
+  "title": "[SBODPOC-123] Added user authentication system",
   "sections": {
     "summary": ["Implements JWT-based authentication", "Adds user login/signup endpoints"],
     "implementation": ["Uses bcrypt for password hashing", "JWT tokens expire in 24h"],

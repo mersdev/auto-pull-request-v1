@@ -1,48 +1,147 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Code Changes Results</title>
-    <link href="styles.css" rel="stylesheet" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Changes Analysis</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="container results-page">
+      <div class="header">
+        <div class="logo">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 48 48"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="24"
+              cy="24"
+              r="22"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M24 12L36 24L24 36L12 24L24 12Z"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+          </svg>
+        </div>
+        <h1 class="title">Code Changes Analysis</h1>
+        <p class="subtitle">Comprehensive analysis of your code changes</p>
+      </div>
+
       <!-- Code Changes Section -->
-      <div id="codeChanges" class="section-card">
+      <div class="section-card">
         <div class="section-header">
-          <h2 class="section-title">Code Changes</h2>
+          <h2 class="section-title">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M16 18L22 12L16 6"></path>
+              <path d="M8 6L2 12L8 18"></path>
+            </svg>
+            Code Changes
+          </h2>
         </div>
         <div class="section-content">
-          <div id="fileChangesContent"></div>
+          <div id="codeChanges" class="code-changes"></div>
         </div>
       </div>
 
-      <!-- Explanation Section -->
-      <div id="explanation" class="section-card">
+      <!-- Changes Explanation Section -->
+      <div class="section-card">
         <div class="section-header">
-          <h2 class="section-title">Changes Explanation</h2>
+          <h2 class="section-title">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.6056 8.7 3.90003C9.87812 3.30496 11.1801 2.99659 12.5 3.00003H13C15.0843 3.11502 17.053 3.99479 18.5291 5.47089C20.0052 6.94699 20.885 8.91568 21 11V11.5Z"
+              ></path>
+            </svg>
+            Changes Explanation
+          </h2>
         </div>
-        <div class="explanation-content"></div>
+        <div class="section-content">
+          <div id="explanation" class="explanation-content"></div>
+        </div>
       </div>
 
       <!-- Review Message Section -->
-      <div id="reviewMessage" class="section-card">
+      <div class="section-card">
         <div class="section-header">
-          <h2 class="section-title">Review Request Message</h2>
+          <h2 class="section-title">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M4 21V8C4 7.20435 4.31607 6.44129 4.87868 5.87868C5.44129 5.31607 6.20435 5 7 5H17C17.7956 5 18.5587 5.31607 19.1213 5.87868C19.6839 6.44129 20 7.20435 20 8V14C20 14.7956 19.6839 15.5587 19.1213 16.1213C18.5587 16.6839 17.7956 17 17 17H8L4 21Z"
+              ></path>
+            </svg>
+            Review Message
+          </h2>
           <div class="button-group">
-            <button id="copyMessageButton" class="copy-button">
-              <span class="button-text">Copy Message</span>
+            <button id="copyButton" class="copy-button">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M13 5H7C5.89543 5 5 5.89543 5 7V13C5 14.1046 5.89543 15 7 15H13C14.1046 15 15 14.1046 15 13V7C15 5.89543 14.1046 5 13 5Z"
+                ></path>
+                <path
+                  d="M3 11H2C1.44772 11 1 10.5523 1 10V2C1 1.44772 1.44772 1 2 1H10C10.5523 1 11 1.44772 11 2V3"
+                ></path>
+              </svg>
+              Copy
             </button>
-            <button id="regenerateMessageButton" class="regenerate-button">
-              <span class="button-text">Regenerate</span>
+            <button id="regenerateButton" class="regenerate-button">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M1 8C1 11.866 4.13401 15 8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1"
+                ></path>
+                <path d="M1 3V1H3"></path>
+                <path d="M1 1V3"></path>
+              </svg>
+              Regenerate
             </button>
           </div>
         </div>
         <div class="section-content">
-          <pre id="messageText" class="message-text"></pre>
+          <div id="message" class="message-text"></div>
         </div>
       </div>
     </div>

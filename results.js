@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (data.fileChanges) {
       displayFileChanges(data.fileChanges);
     } else {
-      displayEmptyState("fileChangesContent", "No code changes available");
+      displayEmptyState("codeChanges", "No code changes available");
     }
 
     if (data.explanation) {
@@ -23,11 +23,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (data.reviewMessage) {
       displayReviewMessage(data.reviewMessage);
     } else {
-      displayEmptyState("messageText", "No review message available");
+      displayEmptyState("message", "No review message available");
     }
 
     // Set up button listeners
     setupButtonListeners();
+
+    // Auto scroll to Review Message section
+    setTimeout(() => {
+      const reviewMessageSection = document.querySelector(
+        ".section-card:last-child"
+      );
+      if (reviewMessageSection) {
+        reviewMessageSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 500); // Small delay to ensure content is rendered
   } catch (error) {
     console.error("Error initializing results page:", error);
     displayError("Error loading results. Please try extracting changes again.");
@@ -50,25 +63,25 @@ function displayError(message) {
 }
 
 function displayFileChanges(fileChanges) {
-  const fileChangesContent = document.getElementById("fileChangesContent");
-  if (!fileChangesContent) return;
+  const codeChangesDiv = document.getElementById("codeChanges");
+  if (!codeChangesDiv) return;
 
   try {
     if (!Array.isArray(fileChanges) || fileChanges.length === 0) {
-      displayEmptyState("fileChangesContent", "No code changes available");
+      displayEmptyState("codeChanges", "No code changes available");
       return;
     }
 
-    fileChangesContent.innerHTML = formatFileChanges(fileChanges);
+    codeChangesDiv.innerHTML = formatFileChanges(fileChanges);
   } catch (error) {
     console.error("Error displaying file changes:", error);
-    displayEmptyState("fileChangesContent", "Error displaying code changes");
+    displayEmptyState("codeChanges", "Error displaying code changes");
   }
 }
 
 function displayExplanation(explanation) {
-  const explanationContent = document.querySelector(".explanation-content");
-  if (!explanationContent) return;
+  const explanationDiv = document.getElementById("explanation");
+  if (!explanationDiv) return;
 
   try {
     let parsedExplanation = explanation;
@@ -82,7 +95,7 @@ function displayExplanation(explanation) {
     }
 
     const html = formatExplanation(parsedExplanation);
-    explanationContent.innerHTML = html;
+    explanationDiv.innerHTML = html;
   } catch (error) {
     console.error("Error displaying explanation:", error);
     displayEmptyState("explanation", "Error displaying explanation");
@@ -99,17 +112,32 @@ function formatExplanation(explanation) {
     )}</div>`;
   }
 
-  // Add sections
+  // Add sections in specific order with custom styling
+  const sectionOrder = [
+    "summary",
+    "implementation",
+    "impact",
+    "testing",
+    "recommendations",
+  ];
+
   if (explanation.sections) {
-    Object.entries(explanation.sections).forEach(([sectionName, points]) => {
+    sectionOrder.forEach((sectionName) => {
+      const points = explanation.sections[sectionName];
       if (Array.isArray(points) && points.length > 0) {
         const sectionTitle =
           sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
         html += `
-          <div class="explanation-section">
+          <div class="explanation-section" data-section="${sectionName}">
             <h3 class="section-subtitle">${escapeHtml(sectionTitle)}</h3>
             <ul class="explanation-points">
-              ${points.map((point) => `<li>${escapeHtml(point)}</li>`).join("")}
+              ${points
+                .map(
+                  (point) => `
+                <li>${escapeHtml(point)}</li>
+              `
+                )
+                .join("")}
             </ul>
           </div>
         `;
@@ -121,19 +149,30 @@ function formatExplanation(explanation) {
 }
 
 function displayReviewMessage(message) {
-  const messageText = document.getElementById("messageText");
-  if (!messageText) return;
+  const messageDiv = document.getElementById("message");
+  if (!messageDiv) return;
 
   try {
     if (!message) {
-      displayEmptyState("messageText", "No review message available");
+      displayEmptyState("message", "No review message available");
       return;
     }
 
-    messageText.textContent = message;
+    // Format the message with proper spacing and structure
+    const formattedMessage = message
+      .split("\n")
+      .map((line) => {
+        if (line.trim().startsWith("-")) {
+          return `<li>${escapeHtml(line.trim().substring(1).trim())}</li>`;
+        }
+        return line ? `<p>${escapeHtml(line)}</p>` : "";
+      })
+      .join("");
+
+    messageDiv.innerHTML = formattedMessage;
   } catch (error) {
     console.error("Error displaying review message:", error);
-    displayEmptyState("messageText", "Error displaying review message");
+    displayEmptyState("message", "Error displaying review message");
   }
 }
 
@@ -144,11 +183,11 @@ function formatFileChanges(fileNames) {
 function formatSingleFileChanges(file) {
   const changes = file.changes.map((change) => formatCodeLine(change)).join("");
   return `
-        <div class="file-changes">
-            <div class="file-name">${escapeHtml(file.fileName)}</div>
-            <div class="code-changes">${changes}</div>
-        </div>
-    `;
+    <div class="file-changes">
+      <div class="file-name">${escapeHtml(file.fileName)}</div>
+      <div class="code-changes">${changes}</div>
+    </div>
+  `;
 }
 
 function formatCodeLine(change) {
@@ -160,28 +199,34 @@ function formatCodeLine(change) {
       : "";
   const prefix =
     change.type === "added" ? "+" : change.type === "removed" ? "-" : " ";
+
+  // Remove "Plus" and "Minus" text if present, but keep the + and - signs
+  let content = change.content;
+  content = content.replace(/^Plus\s+/, ""); // Remove "Plus" text
+  content = content.replace(/^Minus\s+/, ""); // Remove "Minus" text
+
   return `<div class="code-line ${typeClass}"><span class="prefix">${prefix}</span>${escapeHtml(
-    change.content
+    content
   )}</div>`;
 }
 
 function setupButtonListeners() {
-  const copyButton = document.getElementById("copyMessageButton");
-  const regenerateButton = document.getElementById("regenerateMessageButton");
+  const copyButton = document.getElementById("copyButton");
+  const regenerateButton = document.getElementById("regenerateButton");
 
   if (copyButton) {
     copyButton.addEventListener("click", async () => {
-      const messageText = document.getElementById("messageText");
-      if (!messageText || !messageText.textContent) return;
+      const messageDiv = document.getElementById("message");
+      if (!messageDiv || !messageDiv.textContent) return;
 
       try {
-        await navigator.clipboard.writeText(messageText.textContent);
+        await navigator.clipboard.writeText(messageDiv.textContent);
         updateButtonState(copyButton, "Copied!");
-        setTimeout(() => updateButtonState(copyButton, "Copy Message"), 2000);
+        setTimeout(() => updateButtonState(copyButton, "Copy"), 2000);
       } catch (error) {
         console.error("Error copying message:", error);
         updateButtonState(copyButton, "Copy failed");
-        setTimeout(() => updateButtonState(copyButton, "Copy Message"), 2000);
+        setTimeout(() => updateButtonState(copyButton, "Copy"), 2000);
       }
     });
   }
@@ -195,10 +240,7 @@ function setupButtonListeners() {
 }
 
 function updateButtonState(button, text) {
-  const buttonText = button.querySelector(".button-text");
-  if (buttonText) {
-    buttonText.textContent = text;
-  }
+  button.textContent = text;
 }
 
 function escapeHtml(unsafe) {
@@ -216,7 +258,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "UPDATE_REVIEW_MESSAGE") {
     displayReviewMessage(message.message);
     updateButtonState(
-      document.getElementById("regenerateMessageButton"),
+      document.getElementById("regenerateButton"),
       "Regenerate"
     );
   }
