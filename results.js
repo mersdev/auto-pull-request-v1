@@ -181,11 +181,43 @@ function formatFileChanges(fileNames) {
 }
 
 function formatSingleFileChanges(file) {
-  const changes = file.changes.map((change) => formatCodeLine(change)).join("");
+  let changes = [];
+
+  // Handle both Azure and GitHub formats
+  if (file.changes) {
+    // Azure format
+    changes = file.changes.map((change) => ({
+      type: change.type,
+      content: change.content,
+    }));
+  } else {
+    // GitHub format (or direct added/removed format)
+    if (file.added) {
+      changes.push(
+        ...file.added.map((content) => ({
+          type: "added",
+          content: content,
+        }))
+      );
+    }
+    if (file.removed) {
+      changes.push(
+        ...file.removed.map((content) => ({
+          type: "removed",
+          content: content,
+        }))
+      );
+    }
+  }
+
+  const formattedChanges = changes
+    .map((change) => formatCodeLine(change))
+    .join("");
+
   return `
     <div class="file-changes">
       <div class="file-name">${escapeHtml(file.fileName)}</div>
-      <div class="code-changes">${changes}</div>
+      <div class="code-changes">${formattedChanges}</div>
     </div>
   `;
 }
@@ -204,10 +236,12 @@ function formatCodeLine(change) {
   let content = change.content;
   content = content.replace(/^Plus\s+/, ""); // Remove "Plus" text
   content = content.replace(/^Minus\s+/, ""); // Remove "Minus" text
+  content = content.replace(/^\+\s*/, ""); // Remove leading + and spaces
+  content = content.replace(/^-\s*/, ""); // Remove leading - and spaces
 
-  return `<div class="code-line ${typeClass}"><span class="prefix">${prefix}</span>${escapeHtml(
-    content
-  )}</div>`;
+  return `<div class="code-line ${typeClass}">
+    <span class="prefix">${prefix}</span>${escapeHtml(content)}
+  </div>`;
 }
 
 function setupButtonListeners() {
@@ -269,7 +303,6 @@ function updateButtonState(button, text) {
 }
 
 function escapeHtml(unsafe) {
-  if (typeof unsafe !== "string") return "";
   return unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

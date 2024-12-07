@@ -1,15 +1,15 @@
 # Git Pull Request Helper
 
-A browser extension that helps you extract and analyze code changes from pull requests, making code review more efficient and organized.
+A powerful browser extension that helps you extract, analyze, and understand code changes from pull requests on GitHub and Azure DevOps, making code review more efficient and organized.
 
 ## Features
 
 <<<<<<< Updated upstream
+
 - Quick access to pull request changes through a convenient popup interface
 - Extract code changes from your current branch
 - Clean and modern user interface with a professional design
-- Seamless integration with Git platforms
-=======
+- # Seamless integration with Git platforms
 - **Multi-Platform Support**
 
   - Seamless integration with GitHub and Azure DevOps
@@ -77,7 +77,7 @@ The extension is built with a modular architecture:
    - Connects with Gemini AI for code review
    - Processes responses into formatted explanations
    - Generates PR descriptions and summaries
->>>>>>> Stashed changes
+     > > > > > > > Stashed changes
 
 ## Installation
 
@@ -118,10 +118,12 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 ## Usage
 
-1. Navigate to your pull request
+1. Navigate to a pull request on GitHub or Azure DevOps
 2. Click the extension icon in your browser toolbar
-3. Click "Extract Changes" to analyze the code changes
-4. Review the extracted changes in an organized format
+3. The extension will automatically detect the platform and show its status
+4. Click "Extract Changes" to analyze the code changes
+5. Review the generated analysis and suggestions
+6. Use the copy/regenerate buttons as needed
 
 ## Development
 
@@ -130,6 +132,23 @@ GEMINI_API_KEY=your_gemini_api_key_here
 1. Make your changes to the source code
 2. Reload the extension in your browser
 3. Test the changes by using the extension
+
+### Project Structure
+
+```
+git-pull-request-helper/
+├── manifest.json        # Extension configuration
+├── background.js       # Service worker
+├── content.js         # Content script
+├── popup.html        # Extension popup
+├── popup.js         # Popup logic
+├── results.html    # Results page
+├── styles.css     # Styling
+├── handlers/
+│   ├── github-handler.js   # GitHub integration
+│   └── azure-handler.js    # Azure DevOps integration
+└── images/              # Icons and assets
+```
 
 ## Contributing
 
@@ -145,4 +164,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-If you encounter any issues or have suggestions for improvements, please open an issue in the GitHub repository.
+If you encounter any issues or have suggestions for improvements:
+
+1. Check the existing issues in the GitHub repository
+2. Open a new issue with a detailed description
+3. Include steps to reproduce any bugs
+4. Attach relevant screenshots if applicable
