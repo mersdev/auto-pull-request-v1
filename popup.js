@@ -222,16 +222,28 @@ function handleIncomingMessages(message) {
         });
 
         // Show final status
-        showStatus(`Opening results page...`);
+        showStatus("Opening results page...");
 
-        // Open results page after a short delay to ensure storage is complete
-        setTimeout(() => {
-          chrome.tabs.create({ url: "results.html" }, () => {
-            // Reset popup state after the new tab is opened
+        // Check for existing tabs with results.html
+        chrome.tabs.query(
+          { url: chrome.runtime.getURL("results.html") },
+          (tabs) => {
+            if (tabs.length > 0) {
+              // If tab exists, focus it and reload
+              chrome.tabs.update(tabs[0].id, {
+                active: true,
+                highlighted: true,
+              });
+              chrome.tabs.reload(tabs[0].id);
+            } else {
+              // If no tab exists, create new one
+              chrome.tabs.create({ url: "results.html" });
+            }
+            // Reset popup state
             resetExtractButton(extractButton);
             hideStatus();
-          });
-        }, 2500);
+          }
+        );
       });
     } catch (error) {
       console.error("Error processing explanation:", error);
@@ -260,10 +272,14 @@ Would appreciate your review when you have a moment. Thanks!`;
     return "Review message could not be generated. Please check the changes and explanation sections.";
   }
 }
+
 // Step 6: Initialize Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
   const extractButton = document.getElementById("extractButton");
   extractButton.addEventListener("click", handleExtraction);
+
+  // Clear the resultsTabOpened flag when popup opens
+  chrome.storage.local.remove("resultsTabOpened");
 });
 
 chrome.runtime.onMessage.addListener(handleIncomingMessages);
