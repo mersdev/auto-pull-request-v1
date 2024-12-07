@@ -1,20 +1,20 @@
-# Azure DevOps Pull Request Review
+# Git Pull Request Helper
 
-A browser extension that helps you extract and analyze code changes from Azure DevOps pull requests, making code review more efficient and organized.
+A browser extension that helps you extract and analyze code changes from pull requests, making code review more efficient and organized.
 
 ## Features
 
 - Quick access to pull request changes through a convenient popup interface
 - Extract code changes from your current branch
 - Clean and modern user interface with a professional design
-- Seamless integration with Azure DevOps
+- Seamless integration with Git platforms
 
 ## Installation
 
 1. Clone this repository
 
 ```bash
-git clone https://github.com/yourusername/azure-devops-pull-request-review.git
+git clone https://github.com/mersdev/git-pull-request-helper.git
 ```
 
 2. Open Chrome/Edge and navigate to `chrome://extensions/`
@@ -23,7 +23,7 @@ git clone https://github.com/yourusername/azure-devops-pull-request-review.git
 
 ## Usage
 
-1. Navigate to your Azure DevOps pull request
+1. Navigate to your pull request
 2. Click the extension icon in your browser toolbar
 3. Click "Extract Changes" to analyze the code changes
 4. Review the extracted changes in an organized format
@@ -34,7 +34,7 @@ git clone https://github.com/yourusername/azure-devops-pull-request-review.git
 
 1. Make your changes to the source code
 2. Reload the extension in your browser
-3. Test the changes by using the extension on Azure DevOps
+3. Test the changes by using the extension
 
 ## Contributing
 

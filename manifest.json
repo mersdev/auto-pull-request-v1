@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Azure DevOps Diff Extractor",
+  "name": "Git Pull Request Helper",
   "version": "1.0",
-  "description": "Extract and explain code changes from Azure DevOps pull requests",
+  "description": "A browser extension that helps you extract and analyze code changes from pull requests",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "host_permissions": ["https://dev.azure.com/*"],
   "action": {
