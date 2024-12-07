@@ -201,7 +201,7 @@ async function handleExtraction() {
       currentWindow: true,
     });
 
-    showStatus("🔄 Refreshing page...");
+    showStatus("⏳ Refreshing page...");
     await chrome.tabs.reload(tab.id);
 
     setTimeout(async () => {
@@ -317,14 +317,13 @@ function generateDefaultReviewMessage(explanation) {
       typeof explanation === "string" ? JSON.parse(explanation) : explanation;
     const summaryPoints = parsedExplanation.sections?.summary || [];
 
-    return `Hi team! 
-
-I've created a new PR that needs your review.
-
-Summary of changes:
-${summaryPoints.map((point) => `- ${point}`).join("\n")}
-
-Would appreciate your review when you have a moment. Thanks!`;
+    return `Hi team! 👋\n\nI've created a new PR that needs your review.\n
+            sbod-xxx: https://github.com/org/repo/pull/xxx\n\n
+            Summary of changes:\n${summaryPoints
+              .map((point) => `• ${point}`)
+              .join(
+                "\n"
+              )}\n\nWould appreciate your review when you have a moment. Thanks! 🙏`;
   } catch (error) {
     console.error("Error generating review message:", error);
     return "Review message could not be generated. Please check the changes and explanation sections.";

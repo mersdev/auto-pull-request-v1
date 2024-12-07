@@ -216,11 +216,36 @@ function setupButtonListeners() {
 
   if (copyButton) {
     copyButton.addEventListener("click", async () => {
-      const messageDiv = document.getElementById("message");
-      if (!messageDiv || !messageDiv.textContent) return;
-
       try {
-        await navigator.clipboard.writeText(messageDiv.textContent);
+        // Get the stored explanation data to access summary points
+        const data = await chrome.storage.local.get(["explanation"]);
+        if (!data.explanation) {
+          console.error("No explanation data found");
+          return;
+        }
+
+        // Parse the explanation to get summary points
+        const parsedExplanation =
+          typeof data.explanation === "string"
+            ? JSON.parse(data.explanation)
+            : data.explanation;
+
+        const summaryPoints = parsedExplanation.sections?.summary || [];
+
+        // Build the formatted message
+        const formattedText = [
+          "Hi team! 👋",
+          "",
+          "I've created a new PR that needs your review.",
+          "sbod-xxx: ",
+          "",
+          "Summary of changes:",
+          ...summaryPoints.map((point) => `- ${point}`),
+          "",
+          "Would appreciate your review when you have a moment. Thanks! 🙏",
+        ].join("\n");
+
+        await navigator.clipboard.writeText(formattedText);
         updateButtonState(copyButton, "Copied!");
         setTimeout(() => updateButtonState(copyButton, "Copy"), 2000);
       } catch (error) {
