@@ -4,8 +4,6 @@ A powerful browser extension that helps you extract, analyze, and understand cod
 
 ## Features
 
-<<<<<<< Updated upstream
-
 - Quick access to pull request changes through a convenient popup interface
 - Extract code changes from your current branch
 - Clean and modern user interface with a professional design
@@ -77,7 +75,6 @@ The extension is built with a modular architecture:
    - Connects with Gemini AI for code review
    - Processes responses into formatted explanations
    - Generates PR descriptions and summaries
-     > > > > > > > Stashed changes
 
 ## Installation
 
@@ -132,23 +129,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 1. Make your changes to the source code
 2. Reload the extension in your browser
 3. Test the changes by using the extension
-
-### Project Structure
-
-```
-git-pull-request-helper/
-├── manifest.json        # Extension configuration
-├── background.js       # Service worker
-├── content.js         # Content script
-├── popup.html        # Extension popup
-├── popup.js         # Popup logic
-├── results.html    # Results page
-├── styles.css     # Styling
-├── handlers/
-│   ├── github-handler.js   # GitHub integration
-│   └── azure-handler.js    # Azure DevOps integration
-└── images/              # Icons and assets
-```
 
 ## Contributing
 
