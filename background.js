@@ -226,33 +226,71 @@ function updateOverviewTab(tabId, explanation) {
         });
       }
 
+      function detectPlatform() {
+        const url = window.location.href;
+        if (url.includes("dev.azure.com")) {
+          return "azure";
+        } else if (url.includes("github.com")) {
+          return "github";
+        }
+        return null;
+      }
+
       async function updateFields() {
+        const platform = detectPlatform();
+        if (!platform) {
+          throw new Error(
+            "Unsupported platform - please use Azure DevOps or GitHub"
+          );
+        }
+
         try {
-          // Click overview tab
-          const overviewTab = await waitForElement("#__bolt-tab-overview");
-          overviewTab.click();
+          if (platform === "azure") {
+            // Azure DevOps Implementation
+            // Click overview tab
+            const overviewTab = await waitForElement("#__bolt-tab-overview");
+            overviewTab.click();
 
-          // Wait for inputs and update them
-          const [titleInput, descInput] = await Promise.all([
-            waitForElement("#__bolt-textfield-input-4"),
-            waitForElement("#__bolt-textfield-input-5"),
-          ]);
+            // Wait for inputs and update them
+            const [titleInput, descInput] = await Promise.all([
+              waitForElement("#__bolt-textfield-input-4"),
+              waitForElement("#__bolt-textfield-input-5"),
+            ]);
 
-          // Format description
-          const formattedDescription = formatSections(sections);
+            // Format description
+            const formattedDescription = formatSections(sections);
 
-          // Update fields
-          updateInputValue(titleInput, title);
-          updateInputValue(descInput, formattedDescription);
+            // Update fields
+            updateInputValue(titleInput, title);
+            updateInputValue(descInput, formattedDescription);
 
-          console.log("Overview tab updated successfully");
+            console.log("Azure DevOps PR fields updated successfully");
+          } else if (platform === "github") {
+            // GitHub Implementation
+            const [titleInput, descInput] = await Promise.all([
+              waitForElement("#pull_request_title"),
+              waitForElement("#pull_request_body"),
+            ]);
+
+            // Format description
+            const formattedDescription = formatSections(sections);
+
+            // Update fields
+            updateInputValue(titleInput, title);
+            updateInputValue(descInput, formattedDescription);
+
+            console.log("GitHub PR fields updated successfully");
+          }
         } catch (error) {
-          console.error("Error updating overview tab:", error);
+          console.error(`Error updating ${platform} PR fields:`, error);
+          throw error;
         }
       }
 
       // Start the update process
-      updateFields();
+      updateFields().catch((error) => {
+        console.error("Failed to update PR fields:", error);
+      });
     },
     args: [explanation.title, explanation.sections],
   };
