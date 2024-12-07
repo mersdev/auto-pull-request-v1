@@ -1,80 +1,65 @@
 # Git Pull Request Helper
 
-A powerful browser extension that helps you extract, analyze, and understand code changes from pull requests on GitHub and Azure DevOps, making code review more efficient and organized.
+A powerful browser extension that streamlines code reviews by providing AI-powered analysis and automated PR summaries for GitHub and Azure DevOps.
 
-## Features
+## Key Features
 
-- Quick access to pull request changes through a convenient popup interface
-- Extract code changes from your current branch
-- Clean and modern user interface with a professional design
-- # Seamless integration with Git platforms
-- **Multi-Platform Support**
+### 🔄 Smart Code Analysis
 
-  - Seamless integration with GitHub and Azure DevOps
-  - Platform-specific handling for different PR interfaces
-  - Automatic platform detection and status indication
+- Automatically extracts and categorizes code changes from pull requests
+- Identifies additions and deletions with syntax-aware parsing
+- Provides structured analysis of changes by file
+- Generates comprehensive code review reports using Gemini AI
 
-- **Smart Code Analysis**
+### 🌐 Multi-Platform Support
 
-  - Extracts code changes from pull requests
-  - Identifies additions and deletions in code
-  - Organizes changes by file for easy review
-  - Integrates with Gemini AI for automated code review suggestions
+- Seamless integration with GitHub and Azure DevOps
+- Platform-specific handlers for accurate code extraction
+- Automatic platform detection and status indication
+- Consistent experience across different Git platforms
 
-- **Modern User Interface**
+### 🤖 AI-Powered Review Assistant
 
-  - Clean and intuitive popup interface
-  - Real-time platform status indication
-  - Responsive design with smooth animations
-  - Custom-styled code display with syntax highlighting
+- Automated code review suggestions using Gemini AI
+- Smart PR description generation
+- Impact analysis and testing recommendations
+- Technical implementation summaries
 
-- **Advanced Functionality**
-  - Automatic PR description generation
-  - Copy changes to clipboard
-  - Regenerate analysis on demand
-  - Scroll synchronization for large PRs
+### 💬 Team Communication
+
+- Generates formatted review messages for team communication
+- Customizable PR descriptions with key changes highlighted
+- One-click copy and share functionality
+- Structured summaries for better team understanding
 
 ## Technical Implementation
 
-### Architecture
+### Platform Integration
 
-The extension is built with a modular architecture:
+```javascript
+// Platform-specific handlers for accurate code extraction
+const GITHUB_SELECTORS = {
+  fileName: ".file-header[data-path]",
+  reposHeader: ".file.js-file",
+  deletionLine: ".blob-code-deletion .blob-code-inner",
+  additionLine: ".blob-code-addition .blob-code-inner",
+};
 
-- **Background Service Worker** (`background.js`)
+const AZURE_SELECTORS = {
+  fileName: ".repos-summary-header .body-s.secondary-text.text-ellipsis",
+  reposHeader: "repos-summary-header",
+  codeContent: "repos-line-content",
+};
+```
 
-  - Handles Gemini AI integration for code review
-  - Manages message passing between components
-  - Processes code changes and generates review summaries
+### AI Integration
 
-- **Platform-Specific Handlers**
+The extension uses Gemini AI to provide:
 
-  - `github-handler.js`: GitHub-specific code extraction
-  - `azure-handler.js`: Azure DevOps-specific code extraction
-  - Custom selectors and DOM manipulation for each platform
-
-- **UI Components**
-  - Popup interface with real-time status updates
-  - Results page for displaying analyzed changes
-  - Custom CSS with CSS variables for theming
-
-### Core Features Implementation
-
-1. **Code Extraction**
-
-   - Uses platform-specific selectors to identify code changes
-   - Handles both added and removed code segments
-   - Maintains file structure and context
-
-2. **Change Analysis**
-
-   - Processes diffs using DOM traversal
-   - Formats changes for AI analysis
-   - Generates structured summaries
-
-3. **AI Integration**
-   - Connects with Gemini AI for code review
-   - Processes responses into formatted explanations
-   - Generates PR descriptions and summaries
+- Code change analysis
+- PR description generation
+- Impact assessment
+- Testing recommendations
 
 ## Installation
 
@@ -102,16 +87,13 @@ git clone https://github.com/mersdev/git-pull-request-helper.git
 
 ## Environment Variables
 
-The extension requires the following environment variables to be set in your `.env` file:
+The extension requires the following environment variables in your `.env` file:
 
 ```env
 # Required
 GEMINI_API_KEY=your_gemini_api_key_here
+
 ```
-
-### Environment Variables Description
-
-- `GEMINI_API_KEY`: Your Google Gemini AI API key (required)
 
 ## Usage
 
@@ -119,8 +101,34 @@ GEMINI_API_KEY=your_gemini_api_key_here
 2. Click the extension icon in your browser toolbar
 3. The extension will automatically detect the platform and show its status
 4. Click "Extract Changes" to analyze the code changes
-5. Review the generated analysis and suggestions
-6. Use the copy/regenerate buttons as needed
+5. Review the generated:
+   - Code analysis report
+   - PR description
+   - Review message for team
+6. Use the copy/regenerate buttons to share with your team
+
+## Features in Detail
+
+### Code Analysis
+
+- Extracts changes from pull requests
+- Categorizes additions and deletions
+- Provides file-by-file breakdown
+- Generates structured analysis reports
+
+### PR Message Generation
+
+- Creates formatted PR descriptions
+- Includes summary of changes
+- Highlights key modifications
+- Suggests testing focus areas
+
+### Team Communication
+
+- Generates review request messages
+- Includes key changes and impact
+- Provides formatted summaries
+- Easy copy and share functionality
 
 ## Development
 
@@ -138,10 +146,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 4. Push to your branch
 5. Open a pull request
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## Support
 
 If you encounter any issues or have suggestions for improvements:
@@ -150,3 +154,11 @@ If you encounter any issues or have suggestions for improvements:
 2. Open a new issue with a detailed description
 3. Include steps to reproduce any bugs
 4. Attach relevant screenshots if applicable
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+```
+
+```
