@@ -245,7 +245,7 @@ function generateDefaultReviewMessage(explanation) {
   try {
     const parsedExplanation =
       typeof explanation === "string" ? JSON.parse(explanation) : explanation;
-    const summaryPoints = parsedExplanation.changes || [];
+    const summaryPoints = parsedExplanation.sections?.summary || [];
 
     return `Hi team! 
 
