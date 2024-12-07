@@ -1,10 +1,19 @@
 // Step 1: Constants and Utility Functions
-const SELECTORS = {
-  REPOS_HEADER: ".repos-summary-header",
-  FILE_NAME: ".body-s.secondary-text.text-ellipsis",
-  CODE_CONTENT: ".repos-line-content",
-  FILES_TAB: "#__bolt-tab-files",
-  REPOS_VIEWER: ".repos-changes-viewer",
+const PLATFORM_SELECTORS = {
+  azure: {
+    REPOS_HEADER: ".repos-summary-header",
+    FILE_NAME: ".body-s.secondary-text.text-ellipsis",
+    CODE_CONTENT: ".repos-line-content",
+    FILES_TAB: "#__bolt-tab-files",
+    REPOS_VIEWER: ".repos-changes-viewer",
+  },
+  github: {
+    REPOS_HEADER: ".file",
+    FILE_NAME: ".file-header[data-path]",
+    CODE_CONTENT: ".diff-table tr",
+    FILES_TAB: ".js-pull-request-tab[data-tab-item='files']",
+    REPOS_VIEWER: ".pull-request-tab-content",
+  },
 };
 
 const MESSAGE_TYPES = {
@@ -62,16 +71,41 @@ function resetExtractButton(extractButton) {
 // Step 3: Extraction Script Creation
 function createExtractionScript() {
   return () => {
+    function detectPlatform() {
+      const url = window.location.href;
+      if (url.includes("dev.azure.com")) {
+        return "azure";
+      } else if (url.includes("github.com")) {
+        return "github";
+      }
+      return null;
+    }
+
     function extractFileNames() {
+      const platform = detectPlatform();
+      if (!platform) {
+        chrome.runtime.sendMessage({
+          type: "ERROR",
+          message: "❌ Unsupported platform",
+        });
+        return;
+      }
+
       chrome.runtime.sendMessage({
         type: "STATUS_UPDATE",
         message: "📑 Collecting file changes...",
       });
-      const headers = document.getElementsByClassName("repos-summary-header");
+
+      const selectors = PLATFORM_SELECTORS[platform];
+      const headers = document.getElementsByClassName(selectors.REPOS_HEADER);
       const fileNameAndCodes = [];
 
       for (const header of headers) {
-        const extractedData = extractFileNamesAndCodes(header);
+        const extractedData =
+          platform === "azure"
+            ? extractAzureFileNamesAndCodes(header, selectors)
+            : extractGithubFileNamesAndCodes(header, selectors);
+
         if (extractedData) {
           fileNameAndCodes.push(extractedData);
         }
@@ -80,6 +114,7 @@ function createExtractionScript() {
       chrome.runtime.sendMessage({
         type: "FILE_CHANGES",
         fileNames: fileNameAndCodes,
+        platform: platform,
       });
 
       chrome.runtime.sendMessage({
@@ -89,10 +124,8 @@ function createExtractionScript() {
       explainChangesForAllCodes(fileNameAndCodes);
     }
 
-    function extractFileNamesAndCodes(header) {
-      const fileNameElement = header.getElementsByClassName(
-        "body-s secondary-text text-ellipsis"
-      )[0];
+    function extractAzureFileNamesAndCodes(header, selectors) {
+      const fileNameElement = header.querySelector(selectors.FILE_NAME);
 
       if (!fileNameElement) {
         console.log("No filename found for header");
@@ -121,6 +154,37 @@ function createExtractionScript() {
       };
     }
 
+    function extractGithubFileNamesAndCodes(fileElement, selectors) {
+      const fileNameElement = fileElement.querySelector(selectors.FILE_NAME);
+
+      if (!fileNameElement) {
+        console.log("No filename found for file");
+        return null;
+      }
+
+      const diffContent = [];
+      const diffLines = fileElement.querySelectorAll(".diff-table tr");
+
+      diffLines.forEach((line) => {
+        if (line.classList.contains("deletion")) {
+          const content = line
+            .querySelector(".blob-code-deletion")
+            ?.textContent?.trim();
+          if (content) diffContent.push({ type: "removed", content });
+        } else if (line.classList.contains("addition")) {
+          const content = line
+            .querySelector(".blob-code-addition")
+            ?.textContent?.trim();
+          if (content) diffContent.push({ type: "added", content });
+        }
+      });
+
+      return {
+        fileName: fileNameElement.getAttribute("data-path"),
+        changes: diffContent,
+      };
+    }
+
     function explainChangesForAllCodes(fileNameAndCodes) {
       const changes = fileNameAndCodes
         .filter((file) => file !== null)
@@ -137,11 +201,16 @@ function createExtractionScript() {
       chrome.runtime.sendMessage({
         type: "EXPLAIN_CHANGES",
         changes: changes,
+        platform: detectPlatform(),
       });
     }
 
     function scrollDownToGetAllCodes() {
-      const viewer = document.getElementsByClassName("repos-changes-viewer")[0];
+      const platform = detectPlatform();
+      if (!platform) return;
+
+      const selectors = PLATFORM_SELECTORS[platform];
+      const viewer = document.querySelector(selectors.REPOS_VIEWER);
 
       if (viewer) {
         chrome.runtime.sendMessage({
@@ -169,7 +238,17 @@ function createExtractionScript() {
       }
     }
 
-    const filesTab = document.querySelector("#__bolt-tab-files");
+    const platform = detectPlatform();
+    if (!platform) {
+      chrome.runtime.sendMessage({
+        type: "ERROR",
+        message: "❌ Unsupported platform - please use Azure DevOps or GitHub",
+      });
+      return;
+    }
+
+    const selectors = PLATFORM_SELECTORS[platform];
+    const filesTab = document.querySelector(selectors.FILES_TAB);
 
     if (filesTab) {
       chrome.runtime.sendMessage({
